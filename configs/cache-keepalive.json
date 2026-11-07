@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "warmAtFraction": 0.85,
+  "maxWarmCostFraction": 0.25,
+  "models": [
+    "anthropic/claude-opus-5-5",
+    "anthropic/claude-sonnet-5-5",
+    "anthropic/claude-haiku-5-5"
+  ],
+  "maxIdleHours": 8
+}

@@ -1,0 +1,169 @@
+{
+  "_note": "Virtual models for pi-subscription-router 0.5.0 in ~/.pi/agent. Each profile is a virtual model 'router/<id>'; the SELECTION carries no thinking of its own, every rung states its level explicitly (router returns entry.thinking ?? selected). Rung order mirrors ~/.pi/agent/pi-fallback-chains.json so the router and the fallback extension agree on what 'the opus chain' means. exhaustionPolicy 'wait' parks a dispatch until the next known reset; maxWaitMinutes bounds it so an exhausted chain fails instead of hanging a child forever. CommandCode rungs have no usage endpoint: their reset comes from the 429 body ('limit resets at <ISO>'), which the local patch parses. Manual override after a plan upgrade or a purchased reset: /router reset, then /router refresh.",
+  "profiles": {
+    "orchestrator": {
+      "name": "Orchestrator (opus chain)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "anthropic/claude-opus-5-5",
+          "thinking": "medium"
+        },
+        {
+          "model": "openai-codex/gpt-6.1-sol",
+          "thinking": "xhigh"
+        },
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash",
+          "thinking": "max"
+        }
+      ],
+      "exhaustionPolicy": "wait",
+      "maxWaitMinutes": 30
+    },
+    "planner": {
+      "name": "Planner (opus chain, high)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "anthropic/claude-opus-5-5",
+          "thinking": "high"
+        },
+        {
+          "model": "openai-codex/gpt-6.1-sol",
+          "thinking": "xhigh"
+        },
+        {
+          "model": "commandcode/meta/muse-spark-1.3-contributor",
+          "thinking": "max"
+        },
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash",
+          "thinking": "max"
+        }
+      ],
+      "exhaustionPolicy": "wait",
+      "maxWaitMinutes": 30
+    },
+    "worker": {
+      "name": "Worker (deepseek chain)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash",
+          "thinking": "max"
+        },
+        {
+          "model": "openai-codex/gpt-6-luna",
+          "thinking": "max"
+        },
+        {
+          "model": "commandcode/meta/muse-spark-1.3-contributor",
+          "thinking": "max"
+        },
+        {
+          "model": "anthropic/claude-haiku-5-5",
+          "thinking": "xhigh"
+        }
+      ],
+      "exhaustionPolicy": "wait",
+      "maxWaitMinutes": 30
+    },
+    "researcher": {
+      "name": "Researcher (deepseek chain)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash",
+          "thinking": "max"
+        },
+        {
+          "model": "openai-codex/gpt-6-luna",
+          "thinking": "max"
+        },
+        {
+          "model": "commandcode/meta/muse-spark-1.3-contributor",
+          "thinking": "max"
+        },
+        {
+          "model": "anthropic/claude-haiku-5-5",
+          "thinking": "xhigh"
+        }
+      ],
+      "exhaustionPolicy": "wait",
+      "maxWaitMinutes": 30
+    },
+    "scout": {
+      "name": "Scout (deepseek chain)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash",
+          "thinking": "max"
+        },
+        {
+          "model": "openai-codex/gpt-6-luna",
+          "thinking": "max"
+        },
+        {
+          "model": "commandcode/meta/muse-spark-1.3-contributor",
+          "thinking": "max"
+        },
+        {
+          "model": "anthropic/claude-haiku-5-5",
+          "thinking": "xhigh"
+        }
+      ],
+      "exhaustionPolicy": "wait",
+      "maxWaitMinutes": 30
+    },
+    "reviewer": {
+      "name": "Reviewer (sol chain)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "openai-codex/gpt-6.1-sol",
+          "thinking": "xhigh"
+        },
+        {
+          "model": "anthropic/claude-opus-5-5",
+          "thinking": "high"
+        },
+        {
+          "model": "commandcode/meta/muse-spark-1.3-contributor",
+          "thinking": "max"
+        },
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash",
+          "thinking": "max"
+        }
+      ],
+      "exhaustionPolicy": "wait",
+      "maxWaitMinutes": 30
+    },
+    "oracle": {
+      "name": "Oracle (sol chain)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "openai-codex/gpt-6.1-sol",
+          "thinking": "xhigh"
+        },
+        {
+          "model": "anthropic/claude-opus-5-5",
+          "thinking": "high"
+        },
+        {
+          "model": "commandcode/meta/muse-spark-1.3-contributor",
+          "thinking": "max"
+        },
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash",
+          "thinking": "max"
+        }
+      ],
+      "exhaustionPolicy": "wait",
+      "maxWaitMinutes": 30
+    }
+  }
+}
