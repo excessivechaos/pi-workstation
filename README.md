@@ -62,6 +62,7 @@ configs/
   models.patch.json       merged into ~/.pi/agent/models.json
   subscription-router.json
   cache-keepalive.json
+  compaction-percent.json  compaction at 40% of the serving model's window
 ```
 
 ## Options
