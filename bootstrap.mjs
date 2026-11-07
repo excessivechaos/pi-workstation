@@ -78,6 +78,8 @@ function run(command, argv, options = {}) {
 
 /** Which pi invocation works here; the installer puts it on PATH, npm-global may need shell env. */
 function piCommand() {
+	// Under --dry-run nothing is executed, so assume the binary this platform expects.
+	if (DRY) return IS_WINDOWS ? "pi.cmd" : "pi";
 	for (const candidate of IS_WINDOWS ? ["pi.cmd", "pi.exe", "pi"] : ["pi"]) {
 		try {
 			run(candidate, ["--version"], { stdio: ["ignore", "pipe", "pipe"] });
@@ -125,7 +127,8 @@ function writeJson(path, data) {
 function installPi() {
 	step("1/4  pi");
 	if (SKIP_PI) return log("skipped (--skip-pi-install)");
-	if (piCommand() !== undefined) return log(`present: ${run(IS_WINDOWS ? "pi.cmd" : "pi", ["--version"]).trim() || "ok"}`);
+	const found = piCommand();
+	if (found !== undefined) return log(DRY ? "present (assumed under --dry-run)" : `present: ${run(found, ["--version"]).trim() || "ok"}`);
 	if (IS_WINDOWS) return run("powershell", ["-NoProfile", "-Command", "irm https://pi.dev/install.ps1 | iex"]);
 	return run("sh", ["-c", "curl -fsSL https://pi.dev/install.sh | sh"]);
 }
