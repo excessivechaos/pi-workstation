@@ -34,6 +34,7 @@ const PACKAGES = [
 	"npm:@nredd/pi-subscription-router",
 	"git:github.com/excessivechaos/pi-quota-statusline",
 	"git:github.com/excessivechaos/pi-cache-keepalive",
+	"git:github.com/excessivechaos/pi-compaction-percent",
 ];
 /** Installed only on request (see README): useful at 1h cache retention, inert at 5m. */
 const OPTIONAL_PACKAGES = ["git:github.com/excessivechaos/pi-anthropic-cache-anchor"];
@@ -161,6 +162,7 @@ function installConfigs() {
 	// These two are wholly ours; replacing them is the point.
 	writeJson(join(AGENT_DIR, "subscription-router.json"), readJson(join(configs, "subscription-router.json"), {}));
 	writeJson(join(AGENT_DIR, "cache-keepalive.json"), readJson(join(configs, "cache-keepalive.json"), {}));
+	writeJson(join(AGENT_DIR, "compaction-percent.json"), readJson(join(configs, "compaction-percent.json"), {}));
 }
 
 // ---------------------------------------------------------------- 4. shell wrapper

@@ -28,11 +28,14 @@ git clone https://github.com/excessivechaos/pi-workstation; cd pi-workstation
      `npm:@juicesharp/rpiv-ask-user-question`, `npm:@nredd/pi-subscription-router`
    - `git:github.com/excessivechaos/pi-quota-statusline` (footer)
    - `git:github.com/excessivechaos/pi-cache-keepalive` (prompt-cache warmer)
+   - `git:github.com/excessivechaos/pi-compaction-percent` (compaction at a % of the window)
    - `--with-cache-anchor` adds `pi-anthropic-cache-anchor`, which only earns its keep at 1-hour
      cache retention.
 3. **configs** — `settings.json` and `models.json` are **merged** (your theme, keys, locale and any
-   hand-added model override survive); `subscription-router.json` and `cache-keepalive.json` are
-   ours and are written whole. Values live in `configs/`, so changing a chain or a budget is a
+   hand-added model override survive); `subscription-router.json`, `cache-keepalive.json` and
+   `compaction-percent.json` are ours and are written whole. pi's own token-triggered compaction is
+   switched off (`compaction.enabled: false`) because `compaction-percent` owns the trigger: one
+   percentage instead of a per-model `reserveTokens` table. `keepRecentTokens` still applies. Values live in `configs/`, so changing a chain or a budget is a
    file edit in this repo, not a script edit.
 4. **shell profile** — a marked block in `~/.bashrc` / `~/.zshrc` / `$PROFILE` that defaults new
    sessions to `--model router/orchestrator` (pi's default-model lookup rejects a virtual

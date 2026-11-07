@@ -11,10 +11,8 @@
     "anthropic/claude-haiku-5-5"
   ],
   "compaction": {
-    "enabled": true,
-    "reserveTokens": 600000,
-    "keepRecentTokens": 20000,
-    "modelOverrides": {}
+    "enabled": false,
+    "keepRecentTokens": 20000
   },
   "cacheWarming": "off",
   "defaultThinkingLevel": "medium"

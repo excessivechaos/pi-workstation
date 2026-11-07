@@ -24,35 +24,35 @@
           }
         },
         "gpt-6-astra": {
-          "contextWindow": 550000,
+          "contextWindow": 500000,
           "promptCache": {
             "short": 300,
             "long": 1800
           }
         },
         "gpt-6-luna": {
-          "contextWindow": 550000,
+          "contextWindow": 500000,
           "promptCache": {
             "short": 300,
             "long": 1800
           }
         },
         "gpt-6-sol": {
-          "contextWindow": 550000,
+          "contextWindow": 500000,
           "promptCache": {
             "short": 300,
             "long": 1800
           }
         },
         "gpt-6.1-sol": {
-          "contextWindow": 1000000,
+          "contextWindow": 500000,
           "promptCache": {
             "short": 300,
             "long": 1800
           }
         },
         "gpt-6.1-terra": {
-          "contextWindow": 1000000,
+          "contextWindow": 500000,
           "promptCache": {
             "short": 300,
             "long": 1800
