@@ -139,17 +139,6 @@ function merge(base, patch) {
 	return out;
 }
 
-/** Delete a dotted path (`compaction.reserveTokens`) so a merge cannot keep an obsolete value. */
-function removePath(object, path) {
-	const parts = String(path).split(".");
-	let node = object;
-	for (const part of parts.slice(0, -1)) {
-		if (node === null || typeof node !== "object") return;
-		node = node[part];
-	}
-	if (node && typeof node === "object") delete node[parts[parts.length - 1]];
-}
-
 function readJson(path, fallback) {
 	if (!existsSync(path)) return fallback;
 	try {
@@ -222,8 +211,6 @@ function installConfigs() {
 	// settings.json — merge, never replace: locale, theme, keys and anything else stay.
 	const settingsPatch = readJson(join(configs, "settings.patch.json"), {});
 	const settings = merge(readJson(join(AGENT_DIR, "settings.json"), {}), settingsPatch);
-	// A merge cannot delete a key, and a stale enabledModels or reserveTokens would outlive the patch.
-	for (const path of readJson(join(configs, "settings.remove.json"), [])) removePath(settings, path);
 	settings.packages = orderPackages(settings.packages);
 	writeJson(join(AGENT_DIR, "settings.json"), settings);
 

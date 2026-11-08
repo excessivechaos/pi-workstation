@@ -36,12 +36,12 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
    - `git:github.com/excessivechaos/pi-compaction-percent` (soft 40% / hard 60% of the next model's window, pre-switch compaction). Summarisers are the ordered list in `configs/compaction-percent.json`: free 1M models first (`beam:free`, `crouton-alpha`), then `deepseek`, then `current` — paid models come last by that ordering.. Package order matters: it must follow the router, and the script enforces that.
    - `--with-cache-anchor` adds `pi-anthropic-cache-anchor`, which only earns its keep at 1-hour
      cache retention.
-3. **configs** — `settings.json` and `models.json` are **merged**, and keys listed in
-   `configs/settings.remove.json` (`enabledModels`, `defaultThinkingLevel`, `compaction.reserveTokens`,
-   `compaction.keepRecentTokens`) are deleted so an older value cannot outlive the patch. Per-model
-   startup thinking levels are set in `modelThinkingLevels`: opus medium, sonnet high, haiku xhigh,
-   sol/terra xhigh, luna max, deepseek max. Note that pi applies these when a model is *selected*;
-   inside a `router/*` session the router's own thinking level is used instead (your theme, keys, locale and any
+3. **configs** — `settings.json` and `models.json` are **merged**: only the keys in the patch are
+   written, everything else is left exactly as it is (your values, or pi's defaults). Nothing is
+   deleted from either file. Per-model startup thinking levels are set in `modelThinkingLevels`:
+   opus medium, sonnet high, haiku xhigh, sol/terra xhigh, luna max, deepseek max. Note that pi
+   applies these when a model is *selected*; inside a `router/*` session the router's own thinking
+   level is used instead (your theme, keys, locale and any
    hand-added model override survive); `subscription-router.json`, `cache-keepalive.json` and
    `compaction-percent.json` are ours and are written whole. pi's own token-triggered compaction is
    switched off (`compaction.enabled: false`) because `compaction-percent` owns the trigger: one
