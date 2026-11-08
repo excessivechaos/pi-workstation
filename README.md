@@ -25,7 +25,7 @@ git clone https://github.com/excessivechaos/pi-workstation; cd pi-workstation
 2. **packages** — `pi install` for each source, unpinned so `pi update --extensions` follows
    upstream:
    - `npm:pi-commandcode-provider`, `npm:pi-web-access`, `npm:@gotgenes/pi-anthropic-auth`,
-     `npm:@juicesharp/rpiv-ask-user-question`, `git:github.com/excessivechaos/pi-subscription-router`
+     `npm:@juicesharp/rpiv-ask-user-question`
    - `git:github.com/excessivechaos/pi-subscription-router` — minimal fork of the npm router (window kick, cache-stable prompt, publishes the next model for compaction). Superseded sources (the npm router, subagents, Magic Context, fallback chains) are removed first.
    - `git:github.com/excessivechaos/pi-quota-statusline` (footer)
    - `git:github.com/excessivechaos/pi-cache-keepalive` (prompt-cache warmer)
