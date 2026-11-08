@@ -4,15 +4,38 @@ One command turns a fresh machine into this pi setup: pi installed, the packages
 npm and GitHub, and the config files merged into place. Idempotent — running it again converges
 rather than duplicating.
 
+Run it without cloning anything — the script fetches itself and its `configs/` into a temp
+directory, uses that, and deletes it afterwards. Nothing is written to the current directory.
+
+```powershell
+# Windows PowerShell
+irm https://raw.githubusercontent.com/excessivechaos/pi-workstation/main/install.ps1 | iex
+```
+
 ```bash
 # macOS / Linux / Git Bash
+curl -fsSL https://raw.githubusercontent.com/excessivechaos/pi-workstation/main/install.sh | sh
+```
+
+Preview first, or pass any option from the table below:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/excessivechaos/pi-workstation/main/install.ps1))) -BootstrapArgs '--dry-run'
+```
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/excessivechaos/pi-workstation/main/install.sh | sh -s -- --dry-run
+```
+
+Cloning still works and is the way to pin a revision, work offline, or edit the configs locally:
+
+```bash
 git clone https://github.com/excessivechaos/pi-workstation && cd pi-workstation
 ./install.sh --dry-run      # see every action
 ./install.sh                # apply
 ```
 
 ```powershell
-# Windows PowerShell
 git clone https://github.com/excessivechaos/pi-workstation; cd pi-workstation
 .\install.ps1 -BootstrapArgs '--dry-run'
 .\install.ps1
