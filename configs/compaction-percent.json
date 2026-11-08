@@ -3,7 +3,11 @@
   "percent": 40,
   "forcedPercent": 60,
   "marginPercent": 5,
-  "compactionModel": "router/compact",
+  "compactionModels": [
+    "commandcode/reflection/beam:free",
+    "commandcode/deepseek/deepseek-v4.1-flash",
+    "current"
+  ],
   "statusLine": true,
   "dryRun": false
 }

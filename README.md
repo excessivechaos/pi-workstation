@@ -29,7 +29,7 @@ git clone https://github.com/excessivechaos/pi-workstation; cd pi-workstation
    - `git:github.com/excessivechaos/pi-subscription-router` — minimal fork of the npm router (window kick, cache-stable prompt, publishes the next model for compaction). Superseded sources (the npm router, subagents, Magic Context, fallback chains) are removed first.
    - `git:github.com/excessivechaos/pi-quota-statusline` (footer)
    - `git:github.com/excessivechaos/pi-cache-keepalive` (prompt-cache warmer)
-   - `git:github.com/excessivechaos/pi-compaction-percent` (soft 40% / hard 60% of the next model's window, pre-switch compaction, summaries by `router/compact`). Package order matters: it must follow the router, and the script enforces that.
+   - `git:github.com/excessivechaos/pi-compaction-percent` (soft 40% / hard 60% of the next model's window, pre-switch compaction; summarisers are an ordered list in `configs/compaction-percent.json`, ending in `current`). Package order matters: it must follow the router, and the script enforces that.
    - `--with-cache-anchor` adds `pi-anthropic-cache-anchor`, which only earns its keep at 1-hour
      cache retention.
 3. **configs** — `settings.json` and `models.json` are **merged** (your theme, keys, locale and any
@@ -63,7 +63,7 @@ configs/
   models.patch.json       merged into ~/.pi/agent/models.json
   subscription-router.json
   cache-keepalive.json
-  compaction-percent.json  compaction at 40% of the serving model's window
+  compaction-percent.json  soft 40% / hard 60% of the next model's window; summarisers listed here
 ```
 
 ## Options
