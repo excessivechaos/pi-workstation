@@ -31,11 +31,14 @@ const PACKAGES = [
 	"npm:pi-web-access",
 	"npm:@gotgenes/pi-anthropic-auth",
 	"npm:@juicesharp/rpiv-ask-user-question",
-	"npm:@nredd/pi-subscription-router",
+	// A fork that publishes the next model for compaction; it must stay listed BEFORE pi-compaction-percent.
+	"git:github.com/excessivechaos/pi-subscription-router",
 	"git:github.com/excessivechaos/pi-quota-statusline",
 	"git:github.com/excessivechaos/pi-cache-keepalive",
 	"git:github.com/excessivechaos/pi-compaction-percent",
 ];
+/** Superseded sources: removed first, because two routers would register the same virtual models. */
+const REMOVED_PACKAGES = ["npm:@nredd/pi-subscription-router", "npm:pi-subagents", "npm:@cortexkit/pi-magic-context", "npm:@timmyjl12/pi-fallback-chains"];
 /** Installed only on request (see README): useful at 1h cache retention, inert at 5m. */
 const OPTIONAL_PACKAGES = ["git:github.com/excessivechaos/pi-anthropic-cache-anchor"];
 
@@ -140,10 +143,29 @@ function installPackages() {
 	if (SKIP_PACKAGES) return log("skipped (--skip-packages)");
 	const pi = piCommand();
 	if (pi === undefined) throw new Error("pi is not on PATH; run without --skip-pi-install, or open a new shell");
+	for (const source of REMOVED_PACKAGES) {
+		try {
+			run(pi, ["remove", source]);
+		} catch {
+			// not installed: nothing to remove
+		}
+	}
 	for (const source of [...PACKAGES, ...(WITH_ANCHOR ? OPTIONAL_PACKAGES : [])]) {
 		// `pi install` is idempotent for an already-listed source: it refreshes it.
 		run(pi, ["install", source]);
 	}
+}
+
+/**
+ * Handler order follows package order, and pi-compaction-percent must run after the router that
+ * publishes the next model. Our packages keep PACKAGES order; anything else stays ahead of them.
+ */
+function orderPackages(list) {
+	if (!Array.isArray(list)) return list;
+	const source = (entry) => (typeof entry === "string" ? entry : entry?.source);
+	const ours = PACKAGES.flatMap((wanted) => list.filter((entry) => source(entry) === wanted));
+	const others = list.filter((entry) => !PACKAGES.includes(source(entry)));
+	return [...others, ...ours];
 }
 
 // ---------------------------------------------------------------- 3. configs
@@ -153,7 +175,9 @@ function installConfigs() {
 
 	// settings.json — merge, never replace: locale, theme, keys and anything else stay.
 	const settingsPatch = readJson(join(configs, "settings.patch.json"), {});
-	writeJson(join(AGENT_DIR, "settings.json"), merge(readJson(join(AGENT_DIR, "settings.json"), {}), settingsPatch));
+	const settings = merge(readJson(join(AGENT_DIR, "settings.json"), {}), settingsPatch);
+	settings.packages = orderPackages(settings.packages);
+	writeJson(join(AGENT_DIR, "settings.json"), settings);
 
 	// models.json — same merge, so a model override added by hand survives.
 	const modelsPatch = readJson(join(configs, "models.patch.json"), {});

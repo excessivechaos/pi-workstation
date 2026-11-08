@@ -164,6 +164,30 @@
       ],
       "exhaustionPolicy": "wait",
       "maxWaitMinutes": 30
+    },
+    "compact": {
+      "name": "Compaction summaries",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "commandcode/reflection/beam:free"
+        },
+        {
+          "model": "commandcode/deepseek/deepseek-v4.1-flash"
+        }
+      ]
+    },
+    "test": {
+      "name": "Test (free: 1M then 256k)",
+      "strategy": "ordered",
+      "chain": [
+        {
+          "model": "commandcode/reflection/beam:free"
+        },
+        {
+          "model": "commandcode/stealth/glyph-cluster:free"
+        }
+      ]
     }
   }
 }

@@ -8,7 +8,8 @@
     "commandcode/xiaomi/mimo-v2.6-pro",
     "anthropic/claude-sonnet-5-5",
     "router/orchestrator",
-    "anthropic/claude-haiku-5-5"
+    "anthropic/claude-haiku-5-5",
+    "router/test"
   ],
   "compaction": {
     "enabled": false,
