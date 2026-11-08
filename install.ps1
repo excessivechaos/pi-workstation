@@ -48,7 +48,7 @@ try {
     $argv = @("--skip-pi-install")
     if ($BootstrapArgs) { $argv += $BootstrapArgs.Split(" ") }
     & node $bootstrap @argv
-    exit $LASTEXITCODE
+    if ($LASTEXITCODE -ne 0) { throw "bootstrap failed with exit code $LASTEXITCODE" }
 }
 finally {
     foreach ($p in $paths) { Remove-Item -Recurse -Force $p -ErrorAction SilentlyContinue }
