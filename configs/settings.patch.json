@@ -1,20 +1,16 @@
 {
   "defaultModel": "router/orchestrator",
-  "enabledModels": [
-    "anthropic/claude-opus-5-5",
-    "commandcode/deepseek/deepseek-v4.1-flash",
-    "commandcode/meta/muse-spark-1.3-contributor",
-    "openai-codex/gpt-6.1-sol",
-    "commandcode/xiaomi/mimo-v2.6-pro",
-    "anthropic/claude-sonnet-5-5",
-    "router/orchestrator",
-    "anthropic/claude-haiku-5-5",
-    "router/test"
-  ],
   "compaction": {
-    "enabled": false,
-    "keepRecentTokens": 20000
+    "enabled": false
   },
   "cacheWarming": "off",
-  "defaultThinkingLevel": "medium"
+  "modelThinkingLevels": {
+    "anthropic/claude-opus-5-5": "medium",
+    "anthropic/claude-sonnet-5-5": "high",
+    "anthropic/claude-haiku-5-5": "xhigh",
+    "openai-codex/gpt-6.1-sol": "xhigh",
+    "openai-codex/gpt-6.1-terra": "xhigh",
+    "openai-codex/gpt-6-luna": "max",
+    "commandcode/deepseek/deepseek-v4.1-flash": "max"
+  }
 }
