@@ -253,15 +253,19 @@ ${oom}  local _args=("$@") _named=0
 }
 
 function shellBlockPowerShell() {
+	// Resolve the real pi at call time: the installed shim may be pi.cmd, pi.exe, pi.ps1 or an
+	// extensionless launcher, and a function calling a fixed name shadows the one that exists.
 	return `${PS_MARKER}
 # Default a new session to the router; pi's default-model lookup rejects a virtual provider.
 function pi {
+  $exe = (Get-Command pi -CommandType Application -All -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+  if (-not $exe) { Write-Error "pi is not on PATH"; return }
   $named = $false
   foreach ($a in $args) {
     if ($a -in @('-m','--model','-c','--continue','-r','--resume','--session','--fork')) { $named = $true }
     if ($a -like '--model=*' -or $a -like '-m=*') { $named = $true }
   }
-  if ($named) { pi.exe @args } else { pi.exe --model router/orchestrator @args }
+  if ($named) { & $exe @args } else { & $exe --model router/orchestrator @args }
 }
 # <<< pi-workstation bootstrap <<<
 `;
