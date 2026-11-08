@@ -15,7 +15,7 @@
  * Node is required because pi is a Node program; install.sh / install.ps1 install pi (and Node,
  * if the official installer needs to) and then call this file.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -67,12 +67,19 @@ function run(command, argv, options = {}) {
 	}
 	log(printable);
 	try {
-		return execFileSync(command, argv, {
+		const common = {
 			encoding: "utf8",
 			stdio: ["ignore", "pipe", "pipe"],
 			env: { ...process.env, PI_CODING_AGENT_DIR: AGENT_DIR },
 			...options,
-		});
+		};
+		// Windows: a .cmd shim cannot be exec'd directly, and bare `pi` is resolved through PATHEXT,
+		// which only cmd.exe does. Quote locally and hand cmd.exe one command line.
+		if (IS_WINDOWS && /\.ps1$/i.test(command)) {
+			return execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", command, ...argv], common);
+		}
+		if (IS_WINDOWS) return execSync([command, ...argv].map(quoteWindows).join(" "), common);
+		return execFileSync(command, argv, common);
 	} catch (error) {
 		const stderr = String(error?.stderr ?? "").trim();
 		const stdout = String(error?.stdout ?? "").trim();
@@ -80,18 +87,46 @@ function run(command, argv, options = {}) {
 	}
 }
 
+/** Quote one argv entry for cmd.exe. Our own arguments never contain quotes or metacharacters. */
+function quoteWindows(value) {
+	const text = String(value);
+	return /[\s"]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/** `where.exe pi` lists every shim on PATH; the first line wins, but all are tried. */
+function whereCandidates() {
+	if (!IS_WINDOWS) return [];
+	try {
+		return execSync("where.exe pi", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
+			.split(/\r?\n/)
+			.map((line) => line.trim())
+			.filter(Boolean);
+	} catch {
+		return [];
+	}
+}
+
 /** Which pi invocation works here; the installer puts it on PATH, npm-global may need shell env. */
 function piCommand() {
 	// Under --dry-run nothing is executed, so assume the binary this platform expects.
+	const override = value("pi", undefined);
+	if (override) return override;
 	if (DRY) return IS_WINDOWS ? "pi.cmd" : "pi";
-	for (const candidate of IS_WINDOWS ? ["pi.cmd", "pi.exe", "pi"] : ["pi"]) {
+	const tried = [];
+	const candidates = [...new Set([
+		...(IS_WINDOWS ? whereCandidates() : []),
+		...(IS_WINDOWS ? ["pi.cmd", "pi.exe", "pi"] : ["pi"]),
+	])];
+	for (const candidate of candidates) {
 		try {
 			run(candidate, ["--version"], { stdio: ["ignore", "pipe", "pipe"] });
 			return candidate;
-		} catch {
-			/* try the next one */
+		} catch (error) {
+			tried.push(`${candidate}: ${String(error?.message ?? error).split("\n")[0]}`);
 		}
 	}
+	log(`could not run pi. tried:\n  ${tried.join("\n  ")}`);
+	log('pass --pi "<path to pi.cmd>" (or pi.exe / pi.ps1) to skip detection');
 	return undefined;
 }
 

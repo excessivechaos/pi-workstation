@@ -18,6 +18,10 @@ git clone https://github.com/excessivechaos/pi-workstation; cd pi-workstation
 .\install.ps1
 ```
 
+On Windows the script resolves `pi` through `where.exe` and runs it via `cmd.exe` (a `.cmd` shim cannot
+be executed directly) or PowerShell for a `.ps1` shim. If detection still fails, name it yourself:
+`.\install.ps1 -BootstrapArgs '--pi "C:\Users\you\AppData\Roaming\npm\pi.cmd"'`.
+
 ## What it does
 
 1. **pi** — runs the official installer (`pi.dev/install.sh` / `install.ps1`), which also installs
