@@ -2,5 +2,6 @@
   "enabled": true,
   "percent": 40,
   "statusLine": true,
-  "dryRun": false
+  "dryRun": false,
+  "windowStrategy": "floor"
 }

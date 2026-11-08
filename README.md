@@ -35,7 +35,8 @@ git clone https://github.com/excessivechaos/pi-workstation; cd pi-workstation
    hand-added model override survive); `subscription-router.json`, `cache-keepalive.json` and
    `compaction-percent.json` are ours and are written whole. pi's own token-triggered compaction is
    switched off (`compaction.enabled: false`) because `compaction-percent` owns the trigger: one
-   percentage instead of a per-model `reserveTokens` table. `keepRecentTokens` still applies. Values live in `configs/`, so changing a chain or a budget is a
+   percentage instead of a per-model `reserveTokens` table, floored to the smallest window in the
+   router chain so a fallback never compacts after the switch. `keepRecentTokens` still applies. Values live in `configs/`, so changing a chain or a budget is a
    file edit in this repo, not a script edit.
 4. **shell profile** — a marked block in `~/.bashrc` / `~/.zshrc` / `$PROFILE` that defaults new
    sessions to `--model router/orchestrator` (pi's default-model lookup rejects a virtual
