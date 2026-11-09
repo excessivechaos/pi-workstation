@@ -11,12 +11,13 @@
  *   node bootstrap.mjs --skip-pi-install   assume pi is present (offline or pre-installed)
  *   node bootstrap.mjs --skip-packages     config only
  *   node bootstrap.mjs --skip-shell        do not touch the shell profile
+ *   node bootstrap.mjs --skip-tmux         do not touch ~/.tmux.conf
  *
  * Node is required because pi is a Node program; install.sh / install.ps1 install pi (and Node,
  * if the official installer needs to) and then call this file.
  */
 import { execFileSync, execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,11 +35,18 @@ const PACKAGES = [
 	// A fork that publishes the next model for compaction; it must stay listed BEFORE pi-compaction-percent.
 	"git:github.com/excessivechaos/pi-subscription-router",
 	"git:github.com/excessivechaos/pi-quota-statusline",
-	"git:github.com/excessivechaos/pi-cache-keepalive",
 	"git:github.com/excessivechaos/pi-compaction-percent",
 ];
-/** Superseded sources: removed first, because two routers would register the same virtual models. */
-const REMOVED_PACKAGES = ["npm:@nredd/pi-subscription-router", "npm:pi-subagents", "npm:@cortexkit/pi-magic-context", "npm:@timmyjl12/pi-fallback-chains"];
+/** Retired sources: removed before anything is installed, because two routers would register the same virtual models. */
+const REMOVED_PACKAGES = [
+	"npm:@nredd/pi-subscription-router",
+	"npm:pi-subagents",
+	"npm:@cortexkit/pi-magic-context",
+	"npm:@timmyjl12/pi-fallback-chains",
+	// Retired with the move to 1-hour cache retention: warming only ever bought back the 5-minute
+	// tier, and 1h keeps the entry alive across idle gaps without spending a warm on each one.
+	"git:github.com/excessivechaos/pi-cache-keepalive",
+];
 /** Installed only on request (see README): useful at 1h cache retention, inert at 5m. */
 const OPTIONAL_PACKAGES = ["git:github.com/excessivechaos/pi-anthropic-cache-anchor"];
 
@@ -53,6 +61,7 @@ const AGENT_DIR = resolve(value("agent-dir", process.env.PI_CODING_AGENT_DIR || 
 const SKIP_PI = flag("skip-pi-install");
 const SKIP_PACKAGES = flag("skip-packages");
 const SKIP_SHELL = flag("skip-shell");
+const SKIP_TMUX = flag("skip-tmux");
 const WITH_ANCHOR = flag("with-cache-anchor");
 
 const log = (msg) => console.log(`  ${msg}`);
@@ -148,6 +157,14 @@ function readJson(path, fallback) {
 	}
 }
 
+/** Delete a file this workstation no longer owns, without failing when it is already gone. */
+function removeIfPresent(path) {
+	if (!existsSync(path)) return;
+	if (DRY) return log(`would remove ${path}`);
+	rmSync(path);
+	log(`removed ${path}`);
+}
+
 /** Write atomically so an interrupted run never leaves a half-written config. */
 function writeJson(path, data) {
 	const text = `${JSON.stringify(data, null, 2)}\n`;
@@ -164,7 +181,7 @@ function writeJson(path, data) {
 
 // ---------------------------------------------------------------- 1. pi itself
 function installPi() {
-	step("1/4  pi");
+	step("1/5  pi");
 	if (SKIP_PI) return log("skipped (--skip-pi-install)");
 	const found = piCommand();
 	if (found !== undefined) return log(DRY ? "present (assumed under --dry-run)" : `present: ${run(found, ["--version"]).trim() || "ok"}`);
@@ -174,7 +191,7 @@ function installPi() {
 
 // ---------------------------------------------------------------- 2. packages
 function installPackages() {
-	step("2/4  packages");
+	step("2/5  packages");
 	if (SKIP_PACKAGES) return log("skipped (--skip-packages)");
 	const pi = piCommand();
 	if (pi === undefined) throw new Error("pi is not on PATH; run without --skip-pi-install, or open a new shell");
@@ -205,7 +222,7 @@ function orderPackages(list) {
 
 // ---------------------------------------------------------------- 3. configs
 function installConfigs() {
-	step("3/4  configs");
+	step("3/5  configs");
 	const configs = join(HERE, "configs");
 
 	// settings.json — merge, never replace: locale, theme, keys and anything else stay.
@@ -220,8 +237,10 @@ function installConfigs() {
 
 	// These two are wholly ours; replacing them is the point.
 	writeJson(join(AGENT_DIR, "subscription-router.json"), readJson(join(configs, "subscription-router.json"), {}));
-	writeJson(join(AGENT_DIR, "cache-keepalive.json"), readJson(join(configs, "cache-keepalive.json"), {}));
 	writeJson(join(AGENT_DIR, "compaction-percent.json"), readJson(join(configs, "compaction-percent.json"), {}));
+
+	// The warmer is no longer installed; a leftover config would only suggest that it still runs.
+	removeIfPresent(join(AGENT_DIR, "cache-keepalive.json"));
 }
 
 // ---------------------------------------------------------------- 4. shell wrapper
@@ -237,6 +256,11 @@ function shellBlockBash() {
   fi\n`
 		: "";
 	return `${BASH_MARKER}
+# One-hour prompt caches. The 5-minute tier expires across a long tool call or a walk-away, and
+# the next request then re-bills the whole prefix as a write; at this context size one bust costs
+# more than the 1-hour write premium for an entire session. Warming bought the same thing back for
+# a price, so the warmer is retired and this replaces it.
+export PI_CACHE_RETENTION=long
 # Default a new session to the router. pi's default-model lookup rejects a virtual provider, so it
 # is passed explicitly unless the caller already named a model or is resuming a session.
 pi() {
@@ -256,6 +280,8 @@ function shellBlockPowerShell() {
 	// Resolve the real pi at call time: the installed shim may be pi.cmd, pi.exe, pi.ps1 or an
 	// extensionless launcher, and a function calling a fixed name shadows the one that exists.
 	return `${PS_MARKER}
+# One-hour prompt caches (see the bash block for why).
+$env:PI_CACHE_RETENTION = "long"
 # Default a new session to the router; pi's default-model lookup rejects a virtual provider.
 function pi {
   $exe = (Get-Command pi -CommandType Application -All -ErrorAction SilentlyContinue | Select-Object -First 1).Source
@@ -272,9 +298,10 @@ function pi {
 }
 
 /** Replace our marked block in `path`, leaving everything else alone. */
-function upsertBlock(path, block, marker) {
+function upsertBlock(path, block, marker, endMarker = "# <<< pi-workstation bootstrap <<<") {
 	const current = existsSync(path) ? readFileSync(path, "utf8") : "";
-	const pattern = new RegExp(`${marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?# <<< pi-workstation bootstrap <<<\\n?`, "m");
+	const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const pattern = new RegExp(`${escape(marker)}[\\s\\S]*?${escape(endMarker)}\\n?`, "m");
 	const next = pattern.test(current) ? current.replace(pattern, block) : `${current}${current.endsWith("\n") || current === "" ? "" : "\n"}${current === "" ? "" : "\n"}${block}`;
 	if (next === current) return log(`${path} already current`);
 	if (DRY) return log(`would update ${path}`);
@@ -283,8 +310,34 @@ function upsertBlock(path, block, marker) {
 	log(`updated ${path}`);
 }
 
+/** tmux daemons keep their own environment; a detached session must not miss what the shell exports. */
+const TMUX_MARKER = "# >>> pi-workstation cache retention >>>";
+const TMUX_END = "# <<< pi-workstation cache retention <<<";
+
+function tmuxBlock() {
+	return `${TMUX_MARKER}
+# One-hour prompt caches must reach every pi started inside tmux, attached or detached.
+set-environment -g PI_CACHE_RETENTION long
+${TMUX_END}
+`;
+}
+
+function installTmux() {
+	step("4/5  tmux");
+	if (SKIP_TMUX) return log("skipped (--skip-tmux)");
+	if (IS_WINDOWS) return log("skipped (no tmux on Windows)");
+	upsertBlock(join(homedir(), ".tmux.conf"), tmuxBlock(), TMUX_MARKER, TMUX_END);
+	// A server already running keeps the environment it started with; refresh it in place.
+	if (DRY) return log("would run: tmux set-environment -g PI_CACHE_RETENTION long");
+	try {
+		run("tmux", ["set-environment", "-g", "PI_CACHE_RETENTION", "long"]);
+	} catch {
+		log("no tmux server running; the config applies to the next one");
+	}
+}
+
 function installShell() {
-	step("4/4  shell profile");
+	step("5/5  shell profile");
 	if (SKIP_SHELL) return log("skipped (--skip-shell)");
 	if (IS_WINDOWS) {
 		const profile = execFileSync("powershell", ["-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -301,6 +354,7 @@ try {
 	installPi();
 	installPackages();
 	installConfigs();
+	installTmux();
 	installShell();
 	console.log("\ndone.");
 	if (DRY) console.log("(dry run — rerun without --dry-run to apply)");
