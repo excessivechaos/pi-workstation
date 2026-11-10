@@ -75,8 +75,10 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
 5. **shell profile** — a marked block in `~/.bashrc` / `~/.zshrc` / `$PROFILE` that exports
    `PI_CACHE_RETENTION=long`, defaults new sessions to `--model router/orchestrator` (pi's
    default-model lookup rejects a virtual provider) and, on Linux, starts pi under the OOM
-   protection if `/usr/local/sbin/protect-pi` exists. The block is replaced in place, never
-   duplicated.
+   protection if `/usr/local/sbin/protect-pi` exists. The `pi` function passes subcommands
+   (`install`, `remove`, `update`, `list`, `config`, `auth`, `mcp`, `--help`, `--version`) straight
+   through — without that, `pi update` would become a session whose first message is "update". The
+   block is replaced in place, never duplicated.
 
 The 1-hour tier is the whole cache policy: a 5-minute entry expires across a long tool call or a
 walk-away, and the next request then re-bills the entire prefix as a write — at a 400k-token
@@ -86,7 +88,7 @@ retired rather than replaced.
 
 ## What it does not do
 
-- **Credentials.** `auth.json` is never copied. Run `pi login` per provider, or copy the file by
+- **Credentials.** `auth.json` is never copied. Run `pi auth login <provider>` per provider, or copy the file by
   hand. Without it every model reports "not available".
 - **Cache retention beyond the opt-in.** The shell and tmux blocks export
   `PI_CACHE_RETENTION=long`; nothing else is configured on the provider side.

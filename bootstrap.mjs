@@ -264,6 +264,12 @@ export PI_CACHE_RETENTION=long
 # Default a new session to the router. pi's default-model lookup rejects a virtual provider, so it
 # is passed explicitly unless the caller already named a model or is resuming a session.
 pi() {
+  # Subcommands and self-query flags belong to pi, not to a prompt: injecting --model here would
+  # make \`pi update\` a session whose first message is "update" (use \`pi -- update\` for that prompt).
+  case "\${1-}" in
+    install|remove|uninstall|update|list|config|auth|mcp|help|--help|-h|--version|-v)
+      command pi "$@"; return ;;
+  esac
 ${oom}  local _args=("$@") _named=0
   for _a in "\${_args[@]}"; do
     case "\$_a" in
@@ -358,7 +364,7 @@ try {
 	installShell();
 	console.log("\ndone.");
 	if (DRY) console.log("(dry run — rerun without --dry-run to apply)");
-	else console.log("Open a new shell, then authenticate providers with `pi login` (or copy auth.json).");
+	else console.log("Open a new shell, then authenticate providers with `pi auth login <provider>` (or copy auth.json).");
 } catch (error) {
 	console.error(`\nbootstrap failed: ${error.message}`);
 	process.exitCode = 1;
