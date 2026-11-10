@@ -1,0 +1,36 @@
+{
+	"name": "pi-workstation",
+	"version": "1.0.0",
+	"description": "Applies the workstation config (settings, models, router, compaction) on every session start: pi update --extensions delivers the configs too",
+	"keywords": [
+		"pi-package",
+		"pi",
+		"config",
+		"settings",
+		"workstation"
+	],
+	"license": "MIT",
+	"type": "module",
+	"files": [
+		"index.ts",
+		"lib",
+		"configs",
+		"bootstrap.mjs",
+		"install.sh",
+		"install.ps1",
+		"README.md",
+		"CHANGELOG.md",
+		"LICENSE"
+	],
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	}
+}

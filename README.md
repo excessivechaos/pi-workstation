@@ -51,6 +51,9 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
    Node when needed. Skipped when pi is already present, or with `--skip-pi-install`.
 2. **packages** — `pi install` for each source, unpinned so `pi update --extensions` follows
    upstream:
+   - `git:github.com/excessivechaos/pi-workstation` — this repo is also a package: its extension
+     re-applies the configs on every start (see below), so other machines converge with
+     `pi update --extensions` instead of a rerun of the installer.
    - `npm:pi-commandcode-provider`, `npm:pi-web-access`, `npm:@gotgenes/pi-anthropic-auth`,
      `npm:@juicesharp/rpiv-ask-user-question`
    - `git:github.com/excessivechaos/pi-subscription-router` — minimal fork of the npm router (window kick, cache-stable prompt, publishes the next model for compaction). Superseded and retired sources (the npm router, subagents, Magic Context, fallback chains, the prompt-cache warmer) are removed first.
@@ -58,7 +61,8 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
    - `git:github.com/excessivechaos/pi-compaction-percent` (absolute token lines: 250k soft / 300k hard, capped at 90% of the model's window, pre-switch compaction). Summarisers are the ordered list in `configs/compaction-percent.json`: free 1M models first (`beam:free`, `crouton-alpha`), then `deepseek`, then `current` — paid models come last by that ordering.. Package order matters: it must follow the router, and the script enforces that.
    - `--with-cache-anchor` adds `pi-anthropic-cache-anchor`, which only earns its keep at 1-hour
      cache retention.
-3. **configs** — `settings.json` and `models.json` are **merged**: only the keys in the patch are
+3. **configs** — the same code the extension runs (`lib/workstation.mjs`), so a fresh machine and
+   an updated one converge on the same result. `settings.json` and `models.json` are **merged**: only the keys in the patch are
    written, everything else is left exactly as it is (your values, or pi's defaults). Nothing is
    deleted from either file. Per-model startup thinking levels are set in `modelThinkingLevels`:
    opus medium, sonnet high, haiku xhigh, sol/terra xhigh, luna max, deepseek max. Note that pi
@@ -86,6 +90,30 @@ context, one such bust costs more than the 1-hour write premium for a whole sess
 5-minute tier bought the same thing back for a comparable price, which is why the warmer is
 retired rather than replaced.
 
+## Configs travel with the code
+
+The repo is a pi package as well as an installer. Its extension
+(`index.ts` → `lib/workstation.mjs`) re-applies `configs/` at every `session_start`, so on a machine
+that already ran the installer once:
+
+```bash
+# edit configs/ here, commit, push, then on the other machine:
+pi update --extensions      # pulls the code, and the configs with it
+```
+
+The next start applies them. Nothing is written when nothing changed (start is silent and does no
+I/O beyond four reads), `/apply-config preview` shows what a start would do, `/apply-config` does it
+now, and `/apply-config path` prints where the files come from and go.
+
+`settings.json` and `models.json` are still merged, never replaced, so a machine's theme, keys,
+locale and hand-added model overrides survive an update. The two wholly-owned files
+(`subscription-router.json`, `compaction-percent.json`) are replaced: edit them in `configs/`, not
+in `~/.pi/agent`, or the next start will put the repo's version back.
+
+`pi update --extensions` itself does not start pi, so a machine that is already running keeps its
+loaded config until the next session; only `compaction-percent` re-reads its file at start, which is
+why this package is ordered before it.
+
 ## What it does not do
 
 - **Credentials.** `auth.json` is never copied. Run `pi auth login <provider>` per provider, or copy the file by
@@ -101,6 +129,8 @@ retired rather than replaced.
 install.sh            launcher: pi + Node, then bootstrap.mjs
 install.ps1           the same for Windows
 bootstrap.mjs         the actual work (Node 22.19+, no dependencies)
+index.ts              the extension: /apply-config, and the same apply run at session start
+lib/workstation.mjs   the package list and the merge/apply logic both of them share
 configs/
   settings.patch.json     merged into ~/.pi/agent/settings.json
   models.patch.json       merged into ~/.pi/agent/models.json

@@ -17,38 +17,22 @@
  * if the official installer needs to) and then call this file.
  */
 import { execFileSync, execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+	OPTIONAL_PACKAGES,
+	PACKAGES,
+	REMOVED_PACKAGES,
+	applyConfigs,
+	isConverged,
+	orderPackages,
+} from "./lib/workstation.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const IS_WINDOWS = process.platform === "win32";
 const IS_LINUX = process.platform === "linux";
-
-/** Packages this workstation runs, unpinned so `pi update --extensions` follows upstream. */
-const PACKAGES = [
-	"npm:pi-commandcode-provider",
-	"npm:pi-web-access",
-	"npm:@gotgenes/pi-anthropic-auth",
-	"npm:@juicesharp/rpiv-ask-user-question",
-	// A fork that publishes the next model for compaction; it must stay listed BEFORE pi-compaction-percent.
-	"git:github.com/excessivechaos/pi-subscription-router",
-	"git:github.com/excessivechaos/pi-quota-statusline",
-	"git:github.com/excessivechaos/pi-compaction-percent",
-];
-/** Retired sources: removed before anything is installed, because two routers would register the same virtual models. */
-const REMOVED_PACKAGES = [
-	"npm:@nredd/pi-subscription-router",
-	"npm:pi-subagents",
-	"npm:@cortexkit/pi-magic-context",
-	"npm:@timmyjl12/pi-fallback-chains",
-	// Retired with the move to 1-hour cache retention: warming only ever bought back the 5-minute
-	// tier, and 1h keeps the entry alive across idle gaps without spending a warm on each one.
-	"git:github.com/excessivechaos/pi-cache-keepalive",
-];
-/** Installed only on request (see README): useful at 1h cache retention, inert at 5m. */
-const OPTIONAL_PACKAGES = ["git:github.com/excessivechaos/pi-anthropic-cache-anchor"];
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);
@@ -139,46 +123,6 @@ function piCommand() {
 	return undefined;
 }
 
-/** Deep-merge plain objects; arrays and scalars from `patch` win. */
-function merge(base, patch) {
-	if (Array.isArray(patch) || patch === null || typeof patch !== "object") return patch;
-	if (Array.isArray(base) || base === null || typeof base !== "object") return { ...patch };
-	const out = { ...base };
-	for (const [key, val] of Object.entries(patch)) out[key] = key in out ? merge(out[key], val) : val;
-	return out;
-}
-
-function readJson(path, fallback) {
-	if (!existsSync(path)) return fallback;
-	try {
-		return JSON.parse(readFileSync(path, "utf8"));
-	} catch (error) {
-		throw new Error(`${path} is not valid JSON: ${error.message}`);
-	}
-}
-
-/** Delete a file this workstation no longer owns, without failing when it is already gone. */
-function removeIfPresent(path) {
-	if (!existsSync(path)) return;
-	if (DRY) return log(`would remove ${path}`);
-	rmSync(path);
-	log(`removed ${path}`);
-}
-
-/** Write atomically so an interrupted run never leaves a half-written config. */
-function writeJson(path, data) {
-	const text = `${JSON.stringify(data, null, 2)}\n`;
-	if (DRY) {
-		log(`would write ${path} (${Buffer.byteLength(text)} bytes)`);
-		return;
-	}
-	mkdirSync(dirname(path), { recursive: true });
-	const tmp = `${path}.tmp-${process.pid}`;
-	writeFileSync(tmp, text);
-	renameSync(tmp, path);
-	log(`wrote ${path}`);
-}
-
 // ---------------------------------------------------------------- 1. pi itself
 function installPi() {
 	step("1/5  pi");
@@ -208,39 +152,17 @@ function installPackages() {
 	}
 }
 
-/**
- * Handler order follows package order, and pi-compaction-percent must run after the router that
- * publishes the next model. Our packages keep PACKAGES order; anything else stays ahead of them.
- */
-function orderPackages(list) {
-	if (!Array.isArray(list)) return list;
-	const source = (entry) => (typeof entry === "string" ? entry : entry?.source);
-	const ours = PACKAGES.flatMap((wanted) => list.filter((entry) => source(entry) === wanted));
-	const others = list.filter((entry) => !PACKAGES.includes(source(entry)));
-	return [...others, ...ours];
-}
-
 // ---------------------------------------------------------------- 3. configs
 function installConfigs() {
 	step("3/5  configs");
-	const configs = join(HERE, "configs");
-
-	// settings.json — merge, never replace: locale, theme, keys and anything else stay.
-	const settingsPatch = readJson(join(configs, "settings.patch.json"), {});
-	const settings = merge(readJson(join(AGENT_DIR, "settings.json"), {}), settingsPatch);
-	settings.packages = orderPackages(settings.packages);
-	writeJson(join(AGENT_DIR, "settings.json"), settings);
-
-	// models.json — same merge, so a model override added by hand survives.
-	const modelsPatch = readJson(join(configs, "models.patch.json"), {});
-	writeJson(join(AGENT_DIR, "models.json"), merge(readJson(join(AGENT_DIR, "models.json"), {}), modelsPatch));
-
-	// These two are wholly ours; replacing them is the point.
-	writeJson(join(AGENT_DIR, "subscription-router.json"), readJson(join(configs, "subscription-router.json"), {}));
-	writeJson(join(AGENT_DIR, "compaction-percent.json"), readJson(join(configs, "compaction-percent.json"), {}));
-
-	// The warmer is no longer installed; a leftover config would only suggest that it still runs.
-	removeIfPresent(join(AGENT_DIR, "cache-keepalive.json"));
+	const results = applyConfigs({ agentDir: AGENT_DIR, configsDir: join(HERE, "configs"), dryRun: DRY });
+	for (const { path, action } of results) {
+		if (action === "unchanged") continue;
+		if (action === "removed" || action === "would-remove") log(`${action} ${path}`);
+		else if (DRY) log(`${action} ${path}`);
+		else log(`${action} ${path}`);
+	}
+	if (isConverged(results)) log("already converged");
 }
 
 // ---------------------------------------------------------------- 4. shell wrapper
