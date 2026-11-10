@@ -1,8 +1,10 @@
 {
   "enabled": true,
-  "percent": 25,
-  "forcedPercent": 30,
-  "marginPercent": 5,
+  "softTokens": 250000,
+  "hardTokens": 300000,
+  "hardWindowFraction": 0.9,
+  "softGapTokens": 50000,
+  "marginTokens": 50000,
   "compactionModels": [
     "commandcode/reflection/beam:free",
     "commandcode/stealth/crouton-alpha",
