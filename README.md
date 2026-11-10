@@ -55,7 +55,7 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
      `npm:@juicesharp/rpiv-ask-user-question`
    - `git:github.com/excessivechaos/pi-subscription-router` — minimal fork of the npm router (window kick, cache-stable prompt, publishes the next model for compaction). Superseded and retired sources (the npm router, subagents, Magic Context, fallback chains, the prompt-cache warmer) are removed first.
    - `git:github.com/excessivechaos/pi-quota-statusline` (footer)
-   - `git:github.com/excessivechaos/pi-compaction-percent` (soft 40% / hard 60% of the next model's window, pre-switch compaction). Summarisers are the ordered list in `configs/compaction-percent.json`: free 1M models first (`beam:free`, `crouton-alpha`), then `deepseek`, then `current` — paid models come last by that ordering.. Package order matters: it must follow the router, and the script enforces that.
+   - `git:github.com/excessivechaos/pi-compaction-percent` (soft 25% / hard 30% of the next model's window, pre-switch compaction). Summarisers are the ordered list in `configs/compaction-percent.json`: free 1M models first (`beam:free`, `crouton-alpha`), then `deepseek`, then `current` — paid models come last by that ordering.. Package order matters: it must follow the router, and the script enforces that.
    - `--with-cache-anchor` adds `pi-anthropic-cache-anchor`, which only earns its keep at 1-hour
      cache retention.
 3. **configs** — `settings.json` and `models.json` are **merged**: only the keys in the patch are
@@ -105,7 +105,7 @@ configs/
   settings.patch.json     merged into ~/.pi/agent/settings.json
   models.patch.json       merged into ~/.pi/agent/models.json
   subscription-router.json
-  compaction-percent.json  soft 40% / hard 60% of the next model's window; summarisers listed here
+  compaction-percent.json  soft 25% / hard 30% of the next model's window; summarisers listed here
 ```
 
 ## Options

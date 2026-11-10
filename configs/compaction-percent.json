@@ -1,7 +1,7 @@
 {
   "enabled": true,
-  "percent": 40,
-  "forcedPercent": 60,
+  "percent": 25,
+  "forcedPercent": 30,
   "marginPercent": 5,
   "compactionModels": [
     "commandcode/reflection/beam:free",
