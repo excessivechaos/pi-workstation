@@ -3,7 +3,7 @@
   "compaction": {
     "enabled": false
   },
-  "cacheWarming": "off",
+  "cacheWarming": "streaming",
   "modelThinkingLevels": {
     "anthropic/claude-opus-5-5": "medium",
     "anthropic/claude-sonnet-5-5": "high",

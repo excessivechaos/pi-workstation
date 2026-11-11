@@ -84,11 +84,18 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
    through — without that, `pi update` would become a session whose first message is "update". The
    block is replaced in place, never duplicated.
 
-The 1-hour tier is the whole cache policy: a 5-minute entry expires across a long tool call or a
-walk-away, and the next request then re-bills the entire prefix as a write — at a 400k-token
-context, one such bust costs more than the 1-hour write premium for a whole session. Warming the
-5-minute tier bought the same thing back for a comparable price, which is why the warmer is
-retired rather than replaced.
+The 1-hour tier is the base of the cache policy: a 5-minute entry expires across a long tool call or
+a walk-away, and the next request then re-bills the entire prefix as a write — at a 400k-token
+context, one such bust costs more than the 1-hour write premium for a whole session. The separate
+`pi-cache-keepalive` package is retired because pi's own warmer covers the one gap the tier leaves,
+and covers it better: `cacheWarming: "streaming"` schedules a `max_tokens: 1` replay at 90% of the
+TTL (54 minutes at 1h), it is not gated on the agent being idle, and it stops at 60 minutes from the
+request — so a run blocked on a tool or an unanswered question gets **one** warm, for about
+`tokens × $0.2/M` (~$0.05 at 250k), and the request that resumes reads the cache instead of paying a
+$2 cold write. Measured: four warms during a 45-second `sleep`, every one `cacheWrite=0`, and the
+resuming request wrote 87 tokens. It stays quiet below the ~10k tokens where a bust is worth less
+than the $0.05 it charges to avoid it, and `idle` mode would be inert at 1h (its 30-minute ceiling
+is under the 54-minute delay).
 
 ## Configs travel with the code
 
