@@ -58,6 +58,7 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
      `npm:@juicesharp/rpiv-ask-user-question`
    - `git:github.com/excessivechaos/pi-subscription-router` — minimal fork of the npm router (window kick, cache-stable prompt, publishes the next model for compaction). Superseded and retired sources (the npm router, subagents, Magic Context, fallback chains, the prompt-cache warmer) are removed first.
    - `git:github.com/excessivechaos/pi-quota-statusline` (footer)
+   - `git:github.com/excessivechaos/pi-cache-keepalive` (keeps the prompt cache warm while a run is blocked: a tool call, or a question waiting on you; budgeted at 25% of one cold start per gap).
    - `git:github.com/excessivechaos/pi-compaction-percent` (absolute token lines: 250k soft / 300k hard, capped at 90% of the model's window, pre-switch compaction). Summarisers are the ordered list in `configs/compaction-percent.json`: free 1M models first (`beam:free`, `crouton-alpha`), then `deepseek`, then `current` — paid models come last by that ordering.. Package order matters: it must follow the router, and the script enforces that.
    - `--with-cache-anchor` adds `pi-anthropic-cache-anchor`, which only earns its keep at 1-hour
      cache retention.
@@ -86,16 +87,25 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
 
 The 1-hour tier is the base of the cache policy: a 5-minute entry expires across a long tool call or
 a walk-away, and the next request then re-bills the entire prefix as a write — at a 400k-token
-context, one such bust costs more than the 1-hour write premium for a whole session. The separate
-`pi-cache-keepalive` package is retired because pi's own warmer covers the one gap the tier leaves,
-and covers it better: `cacheWarming: "streaming"` schedules a `max_tokens: 1` replay at 90% of the
-TTL (54 minutes at 1h), it is not gated on the agent being idle, and it stops at 60 minutes from the
-request — so a run blocked on a tool or an unanswered question gets **one** warm, for about
-`tokens × $0.2/M` (~$0.05 at 250k), and the request that resumes reads the cache instead of paying a
-$2 cold write. Measured: four warms during a 45-second `sleep`, every one `cacheWrite=0`, and the
-resuming request wrote 87 tokens. It stays quiet below the ~10k tokens where a bust is worth less
-than the $0.05 it charges to avoid it, and `idle` mode would be inert at 1h (its 30-minute ceiling
-is under the 54-minute delay).
+context, one such bust costs more than the 1-hour write premium for a whole session.
+
+`pi-cache-keepalive` covers the gap the tier leaves. It warms at 85% of the TTL while a run is
+*blocked* — a long tool, or `ask_user_question` waiting for an answer — which is the only situation
+where a gap outlives the hour, and the one its old gate (idle agent only) could not help with. The
+budget, `maxWarmCostFraction: 0.25`, caps a gap at a quarter of one cold start, about ten warms:
+
+```
+wait        warms at 250k opus            spend      without
+ 62 min     1                             $0.049     $1.98 cold write
+  3 h       3                             $0.15      $1.98
+  9 h       10, budget reached            $0.49      $1.98
+abandoned   10, budget reached            $0.49      $1.98
+```
+
+pi's own warmer is set to `"off"` so there is one owner: its schedule (54 minutes, then a hard stop
+at 60) would otherwise warm the same entry three minutes before this one. A warm costs a cache read,
+`tokens × $0.2/M` at opus; it never writes. Measured during the gate's test: four warms through a
+45-second `sleep`, each `cacheWrite=0`, and the resuming request wrote 87 tokens.
 
 ## Configs travel with the code
 
@@ -143,6 +153,7 @@ configs/
   models.patch.json       merged into ~/.pi/agent/models.json
   subscription-router.json
   compaction-percent.json  250k soft / 300k hard token lines, 90% of the window as the ceiling; summarisers listed here
+  cache-keepalive.json     warm at 85% of the TTL, budget 25% of a cold start, 8 h cap
 ```
 
 ## Options

@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "warmAtFraction": 0.85,
+  "maxWarmCostFraction": 0.25,
+  "models": [],
+  "maxIdleHours": 8
+}
