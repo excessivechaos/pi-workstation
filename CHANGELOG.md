@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- `pi-cache-keepalive` is a package again, at 1.1.0, which warms while a run is *blocked* (a long
+  tool, or an unanswered question) instead of only when the agent was idle. It owns prompt-cache
+  warming: `cacheWarming` is back to `off` so pi's built-in warmer (one refresh at 54 minutes, then
+  a hard stop at 60) does not warm the same entry three minutes earlier.
+- `configs/cache-keepalive.json`: warm at 85% of the TTL, budget 25% of one cold start, 8 h cap.
+  About ten warms — roughly nine hours of cover at 250k, $0.49, against a $1.98 cold write.
+
 ## 1.0.0
 
 - The repo is now also a pi package (`index.ts`). Its extension applies `configs/` at every
