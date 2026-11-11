@@ -3,5 +3,6 @@
   "warmAtFraction": 0.85,
   "maxWarmCostFraction": 0.25,
   "models": [],
-  "maxIdleHours": 8
+  "maxIdleHours": 8,
+  "warmCount": 9
 }

@@ -1,6 +1,6 @@
 {
 	"name": "pi-workstation",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "Applies the workstation config (settings, models, router, compaction) on every session start: pi update --extensions delivers the configs too",
 	"keywords": [
 		"pi-package",

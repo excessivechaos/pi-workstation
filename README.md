@@ -91,15 +91,15 @@ context, one such bust costs more than the 1-hour write premium for a whole sess
 
 `pi-cache-keepalive` covers the gap the tier leaves. It warms at 85% of the TTL while a run is
 *blocked* — a long tool, or `ask_user_question` waiting for an answer — which is the only situation
-where a gap outlives the hour, and the one its old gate (idle agent only) could not help with. The
-budget, `maxWarmCostFraction: 0.25`, caps a gap at a quarter of one cold start, about ten warms:
+where a gap outlives the hour, and the one its old gate (idle agent only) could not help with.
+`warmCount: 9` caps a gap at nine warms, roughly 7.6 hours at a 1 h TTL:
 
 ```
 wait        warms at 250k opus            spend      without
  62 min     1                             $0.049     $1.98 cold write
   3 h       3                             $0.15      $1.98
-  9 h       10, budget reached            $0.49      $1.98
-abandoned   10, budget reached            $0.49      $1.98
+  8 h       9                             $0.44      $1.98
+overnight   9, count reached              $0.44      $1.98
 ```
 
 pi's own warmer is set to `"off"` so there is one owner: its schedule (54 minutes, then a hard stop
@@ -153,7 +153,7 @@ configs/
   models.patch.json       merged into ~/.pi/agent/models.json
   subscription-router.json
   compaction-percent.json  250k soft / 300k hard token lines, 90% of the window as the ceiling; summarisers listed here
-  cache-keepalive.json     warm at 85% of the TTL, budget 25% of a cold start, 8 h cap
+  cache-keepalive.json     warm at 85% of the TTL, warmCount 9 (about 7.6 h), 8 h cap
 ```
 
 ## Options
