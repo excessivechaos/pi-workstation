@@ -6,10 +6,7 @@
   "softGapTokens": 50000,
   "marginTokens": 50000,
   "compactionModels": [
-    "commandcode/reflection/beam:free",
-    "commandcode/stealth/crouton-alpha",
-    "commandcode/deepseek/deepseek-v4.1-flash",
-    "current"
+    "commandcode/deepseek/deepseek-v4.1-flash"
   ],
   "dryRun": false
 }
