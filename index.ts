@@ -78,21 +78,27 @@ export default function workstation(pi: ExtensionAPI): void {
 			ctx.ui.notify(`pi-workstation: could not apply configs: ${(error as Error).message}`, "error");
 		}
 		// Package membership is network work and never blocks the turn. A converged
-		// machine resolves from settings with no network at all.
+		// machine resolves from settings with no network at all. The install can
+		// outlive this session (print mode exits as soon as the answer is done), so
+		// every notify goes through a wrapper that tolerates a stale context.
+		const notify = (text: string, level: "info" | "warning" | "error") => {
+			try {
+				ctx.ui.notify(text, level);
+			} catch {
+				// The session ended while the sync was still running; nothing to say.
+			}
+		};
 		void syncPackages(agentDir(), ctx.cwd)
 			.then((result) => {
 				if (result.failed.length > 0) {
 					const first = result.failed[0] as { source: string; action: string; error: string };
-					ctx.ui.notify(`pi-workstation: ${first.action} of ${first.source} failed: ${first.error}`, "error");
+					notify(`pi-workstation: ${first.action} of ${first.source} failed: ${first.error}`, "error");
 				}
 				if (result.install.length === 0 && result.remove.length === 0) return;
-				ctx.ui.notify(
-					`pi-workstation: ${describePlan(result)} — restart or /reload to activate`,
-					"info",
-				);
+				notify(`pi-workstation: ${describePlan(result)} — restart or /reload to activate`, "info");
 			})
 			.catch((error: unknown) => {
-				ctx.ui.notify(`pi-workstation: could not sync packages: ${(error as Error).message}`, "error");
+				notify(`pi-workstation: could not sync packages: ${(error as Error).message}`, "error");
 			});
 	});
 
