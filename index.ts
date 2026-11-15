@@ -24,7 +24,7 @@
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { DefaultPackageManager, SettingsManager, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { applyConfigs, configsDirFrom, describeResults, isConverged } from "./lib/workstation.mjs";
 import { applyPackages, describePlan } from "./lib/packages.mjs";
 
@@ -48,7 +48,7 @@ let syncing: Promise<{ install: string[]; remove: string[]; failed: unknown[] }>
  * on the next start or `/reload`, exactly like a manual `pi install`.
  */
 function syncPackages(agentDirPath: string, cwd: string) {
-	syncing ??= applyPackages({ agentDir: agentDirPath, cwd })
+	syncing ??= applyPackages({ api: { DefaultPackageManager, SettingsManager }, agentDir: agentDirPath, cwd })
 		.then((result) => {
 			// Re-apply after membership changes so a newly installed package's config
 			// file exists before its own session_start reads it.
@@ -104,7 +104,7 @@ export default function workstation(pi: ExtensionAPI): void {
 		try {
 			if (verb === "preview" || verb === "dry-run" || verb === "status") {
 				const results = apply(agentDir(), true);
-				const plan = await applyPackages({ agentDir: agentDir(), cwd: ctx.cwd, dryRun: true });
+				const plan = await applyPackages({ api: { DefaultPackageManager, SettingsManager }, agentDir: agentDir(), cwd: ctx.cwd, dryRun: true });
 				const changes = describeResults(results);
 				return ctx.ui.notify(
 					`pi-workstation: ${isConverged(results) && plan.install.length + plan.remove.length === 0 ? "converged — nothing to apply" : [changes, describePlan(plan)].filter(Boolean).join(" · ")}`,
