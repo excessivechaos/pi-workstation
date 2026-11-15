@@ -26,6 +26,7 @@ import {
 	PACKAGES,
 	REMOVED_PACKAGES,
 	applyConfigs,
+	applyShellProfile,
 	isConverged,
 	orderPackages,
 } from "./lib/workstation.mjs";
@@ -166,76 +167,6 @@ function installConfigs() {
 }
 
 // ---------------------------------------------------------------- 4. shell wrapper
-const BASH_MARKER = "# >>> pi-workstation bootstrap >>>";
-
-/**
- * Words that must reach pi untouched: injecting `--model` in front of a subcommand
- * turns `pi update` into a session whose first message is "update".
- */
-const PI_SUBCOMMANDS = [
-	"install", "remove", "uninstall", "update", "list", "config", "auth", "mcp",
-	"help", "--help", "-h", "--version", "-v",
-];
-const PS_MARKER = "# >>> pi-workstation bootstrap >>>";
-
-function shellBlockBash() {
-	const oom = IS_LINUX
-		? `  # Keep the kernel from OOM-killing pi (needs the sudoers entry; silently skipped otherwise).
-  if [ -x /usr/local/sbin/protect-pi ]; then
-    ( sleep 2; command sudo -n /usr/local/sbin/protect-pi >/dev/null 2>&1; \\
-      sleep 8; command sudo -n /usr/local/sbin/protect-pi >/dev/null 2>&1 ) &
-  fi\n`
-		: "";
-	return `${BASH_MARKER}
-# One-hour prompt caches. The 5-minute tier expires across a long tool call or a walk-away, and
-# the next request then re-bills the whole prefix as a write; at this context size one bust costs
-# more than the 1-hour write premium for an entire session. Warming bought the same thing back for
-# a price, so the warmer is retired and this replaces it.
-export PI_CACHE_RETENTION=long
-# Default a new session to the router. pi's default-model lookup rejects a virtual provider, so it
-# is passed explicitly unless the caller already named a model or is resuming a session.
-pi() {
-  # Subcommands and self-query flags belong to pi, not to a prompt: injecting --model here would
-  # make \`pi update\` a session whose first message is "update" (use \`pi -- update\` for that prompt).
-  case "\${1-}" in
-    ${PI_SUBCOMMANDS.join("|")})
-      command pi "$@"; return ;;
-  esac
-${oom}  local _args=("$@") _named=0
-  for _a in "\${_args[@]}"; do
-    case "\$_a" in
-      -m|--model|-c|--continue|-r|--resume|--session|--fork|--model=*|-m=*) _named=1 ;;
-    esac
-  done
-  if [ "\$_named" -eq 0 ]; then command pi --model router/orchestrator "\$@"; else command pi "\$@"; fi
-}
-# <<< pi-workstation bootstrap <<<
-`;
-}
-
-function shellBlockPowerShell() {
-	// Resolve the real pi at call time: the installed shim may be pi.cmd, pi.exe, pi.ps1 or an
-	// extensionless launcher, and a function calling a fixed name shadows the one that exists.
-	return `${PS_MARKER}
-# One-hour prompt caches (see the bash block for why).
-$env:PI_CACHE_RETENTION = "long"
-# Default a new session to the router; pi's default-model lookup rejects a virtual provider.
-function pi {
-  $exe = (Get-Command pi -CommandType Application -All -ErrorAction SilentlyContinue | Select-Object -First 1).Source
-  if (-not $exe) { Write-Error "pi is not on PATH"; return }
-  # Subcommands and self-query flags belong to pi, not to a prompt: injecting --model here would
-  # make \`pi update\` a session whose first message is "update" (use \`pi -- update\` for that prompt).
-  if ($args.Count -gt 0 -and @('${PI_SUBCOMMANDS.join("','")}') -contains $args[0]) { & $exe @args; return }
-  $named = $false
-  foreach ($a in $args) {
-    if ($a -in @('-m','--model','-c','--continue','-r','--resume','--session','--fork')) { $named = $true }
-    if ($a -like '--model=*' -or $a -like '-m=*') { $named = $true }
-  }
-  if ($named) { & $exe @args } else { & $exe --model router/orchestrator @args }
-}
-# <<< pi-workstation bootstrap <<<
-`;
-}
 
 /** Replace our marked block in `path`, leaving everything else alone. */
 function upsertBlock(path, block, marker, endMarker = "# <<< pi-workstation bootstrap <<<") {
@@ -279,13 +210,13 @@ function installTmux() {
 function installShell() {
 	step("5/5  shell profile");
 	if (SKIP_SHELL) return log("skipped (--skip-shell)");
-	if (IS_WINDOWS) {
-		const profile = execFileSync("powershell", ["-NoProfile", "-Command", "$PROFILE.CurrentUserAllHosts"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-		return upsertBlock(profile, shellBlockPowerShell(), PS_MARKER);
-	}
-	const shell = process.env.SHELL ?? "/bin/bash";
-	const profile = shell.endsWith("zsh") ? join(homedir(), ".zshrc") : join(homedir(), ".bashrc");
-	upsertBlock(profile, shellBlockBash(), BASH_MARKER);
+	// The same code the extension runs at every start, so a machine never keeps an older
+	// wrapper than its JSON configs.
+	const result = applyShellProfile({ dryRun: DRY });
+	if (!result) return log("no shell profile on this platform; skipped");
+	if (DRY) return log(`would ${result.action.replace("would-", "")} ${result.path}`);
+	if (result.action === "failed") return log(`could not write ${result.path}: ${result.error}`);
+	log(result.action === "unchanged" ? `${result.path} already current` : `wrote ${result.path}`);
 }
 
 // ---------------------------------------------------------------- main

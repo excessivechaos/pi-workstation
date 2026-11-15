@@ -26,7 +26,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DefaultPackageManager, SettingsManager, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { applyConfigs, configsDirFrom, describeResults, isConverged } from "./lib/workstation.mjs";
+import { applyConfigs, applyShellProfile, configsDirFrom, describeResults, isConverged } from "./lib/workstation.mjs";
 import { applyPackages, describePlan } from "./lib/packages.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -37,7 +37,17 @@ function agentDir(): string {
 }
 
 function apply(agentDirPath: string, dryRun: boolean) {
-	return applyConfigs({ agentDir: agentDirPath, configsDir: CONFIGS_DIR, dryRun });
+	const results = applyConfigs({ agentDir: agentDirPath, configsDir: CONFIGS_DIR, dryRun });
+	// The shell profile travels with the rest: without it, a machine keeps an old wrapper and
+	// `pi update` becomes a session whose first message is "update". A failure here must not
+	// cost the session — the profile is convenience, the JSON configs are not.
+	try {
+		const profile = applyShellProfile({ dryRun });
+		if (profile) results.push(profile);
+	} catch (error) {
+		results.push({ path: "shell profile", action: "failed", error: error instanceof Error ? error.message : String(error) } as never);
+	}
+	return results;
 }
 
 /**
