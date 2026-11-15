@@ -129,7 +129,40 @@ in `~/.pi/agent`, or the next start will put the repo's version back.
 
 `pi update --extensions` itself does not start pi, so a machine that is already running keeps its
 loaded config until the next session; only `compaction-percent` re-reads its file at start, which is
-why this package is ordered before it.
+why this package is ordered before it. The same applies to a package the sync just installed: the
+code is on disk and in `settings.json`, and it loads at the next start.
+
+## Packages travel with the code too
+
+The same extension reconciles *which* packages are installed, so a fresh pi install needs one
+command:
+
+```bash
+pi install git:github.com/excessivechaos/pi-workstation
+```
+
+That is the only manual step. The next start (and every start after) compares `settings.json`'s
+package list with `PACKAGES` in `lib/workstation.mjs` and converges it: missing packages are
+installed with pi's own package manager, `REMOVED_PACKAGES` are removed, and any `git:.../excessivechaos/*`
+source that is no longer listed is treated as retired and removed too. `OPTIONAL_PACKAGES` are
+never added and never removed. Foreign sources are never touched.
+
+So the workflow for every machine is:
+
+```bash
+# here: add/retire a package in lib/workstation.mjs, commit, push
+pi update --extensions      # there: pulls the code (and configs)
+# next start installs/removes packages, then applies configs
+```
+
+Installs are network work, so they run in the background after the config pass and never block a
+turn; a converged machine does no network at all, just one settings read. A package installed
+mid-session loads on the next start or `/reload` — same as a manual `pi install`. The notify line
+says which packages changed and that a restart activates them. `/apply-config preview` shows the
+package plan without touching anything, `/apply-config` applies it immediately.
+
+Two processes starting at the same moment could both try to install the same package; the loser's
+clone fails and is retried at the next start.
 
 ## What it does not do
 

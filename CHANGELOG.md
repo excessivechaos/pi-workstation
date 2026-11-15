@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Package membership converges at session start.** `lib/packages.mjs` drives pi's own
+  `DefaultPackageManager`: a fresh machine needs only
+  `pi install git:github.com/excessivechaos/pi-workstation`, and every later start installs what
+  `PACKAGES` lists, removes `REMOVED_PACKAGES`, and retires any `git:.../excessivechaos/*` source
+  that dropped off the list. `OPTIONAL_PACKAGES` and foreign sources are never touched. Installs
+  run in the background after the config pass (never blocking a turn, no network when converged)
+  and announce themselves with "restart or /reload to activate"; `/apply-config preview` shows the
+  package plan, `/apply-config` applies it.
+
 - Two new packages, both quota-aware, both explicit-model-first:
   - **pi-quota-peek** is the single source of truth for subscription quota windows: it owns the
     Anthropic and Codex usage collectors and publishes snapshots and per-model reset times through
