@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **PowerShell passes subcommands through.** The bash block sent `install|remove|uninstall|update|
+  list|config|auth|mcp|--help|--version` straight to pi; the PowerShell block did not, so
+  `pi update --extensions` on a Windows install injected `--model router/orchestrator` and started a
+  session whose first message was "update". Both blocks now render the same `PI_SUBCOMMANDS` list.
+  The profile is still written by the installer, so an affected machine needs one rerun of
+  `install.ps1` (or the block copied by hand) — `pi update --extensions` does not touch profiles.
+
 - **Removals are explicit only.** `planPackages` no longer treats "ours, but not in my list" as a
   retirement: an in-process list older than the settings file would delete the packages newer than
   itself. On 2026-11-15 that silently uninstalled `pi-quota-peek` and `pi-quota-resume` from a

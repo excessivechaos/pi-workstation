@@ -167,6 +167,15 @@ function installConfigs() {
 
 // ---------------------------------------------------------------- 4. shell wrapper
 const BASH_MARKER = "# >>> pi-workstation bootstrap >>>";
+
+/**
+ * Words that must reach pi untouched: injecting `--model` in front of a subcommand
+ * turns `pi update` into a session whose first message is "update".
+ */
+const PI_SUBCOMMANDS = [
+	"install", "remove", "uninstall", "update", "list", "config", "auth", "mcp",
+	"help", "--help", "-h", "--version", "-v",
+];
 const PS_MARKER = "# >>> pi-workstation bootstrap >>>";
 
 function shellBlockBash() {
@@ -189,7 +198,7 @@ pi() {
   # Subcommands and self-query flags belong to pi, not to a prompt: injecting --model here would
   # make \`pi update\` a session whose first message is "update" (use \`pi -- update\` for that prompt).
   case "\${1-}" in
-    install|remove|uninstall|update|list|config|auth|mcp|help|--help|-h|--version|-v)
+    ${PI_SUBCOMMANDS.join("|")})
       command pi "$@"; return ;;
   esac
 ${oom}  local _args=("$@") _named=0
@@ -214,6 +223,9 @@ $env:PI_CACHE_RETENTION = "long"
 function pi {
   $exe = (Get-Command pi -CommandType Application -All -ErrorAction SilentlyContinue | Select-Object -First 1).Source
   if (-not $exe) { Write-Error "pi is not on PATH"; return }
+  # Subcommands and self-query flags belong to pi, not to a prompt: injecting --model here would
+  # make \`pi update\` a session whose first message is "update" (use \`pi -- update\` for that prompt).
+  if ($args.Count -gt 0 -and @('${PI_SUBCOMMANDS.join("','")}') -contains $args[0]) { & $exe @args; return }
   $named = $false
   foreach ($a in $args) {
     if ($a -in @('-m','--model','-c','--continue','-r','--resume','--session','--fork')) { $named = $true }
