@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Two new packages, both quota-aware, both explicit-model-first:
+  - **pi-quota-peek** is the single source of truth for subscription quota windows: it owns the
+    Anthropic and Codex usage collectors and publishes snapshots and per-model reset times through
+    `globalThis` symbols, so consumers never import it and never fetch the same endpoint twice.
+    The router keeps its own internal copy on purpose; removing either never breaks the other.
+  - **pi-quota-resume** resumes a session that settled on a quota error: it resolves the reset
+    instant (error text, then peek, then a 15-to-60-minute poll ladder), and sends `continue` at the
+    reset with no distance cap — 5-hour or weekly. Model changes never cancel by themselves (the
+    schedule is pinned to the stopped model and checked at fire time), any user run does, and the
+    give-up guard counts whole resumes, not pi's four retries inside one.
+  - **pi-quota-statusline 1.3.0** reads its quota segments from peek instead of fetching the usage
+    endpoints itself.
+
+## Unreleased
+
 - `configs/compaction-percent.json`: summaries come from `deepseek-v4.1-flash` alone. The two
   CommandCode free models ahead of it in the list no longer resolve in the model registry, so every
   compaction was already falling through to DeepSeek — silently, since the extension only warns when
