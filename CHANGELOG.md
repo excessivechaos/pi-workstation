@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Removals are explicit only.** `planPackages` no longer treats "ours, but not in my list" as a
+  retirement: an in-process list older than the settings file would delete the packages newer than
+  itself. On 2026-11-15 that silently uninstalled `pi-quota-peek` and `pi-quota-resume` from a
+  long-running session. Only `REMOVED_PACKAGES` removes anything now; dropping a source from
+  `PACKAGES` means "stop installing it", not "uninstall it".
+- **`pi-workstation.log`.** Every package pass appends the plan, each action and any failure to
+  `$PI_CODING_AGENT_DIR/pi-workstation.log` (rotated at 200 kB). The sync runs in the background,
+  where a notification resolving against a stale context can vanish without a trace.
+
 - `configs/compaction-percent.json`: `bustTokens: 150000`. Compaction-percent 2.4.0 compacts before a
   prefix rewrite it can see coming — an expired cache or a changed system prompt — once the context is
   past that line. Covers the case where an edited `AGENTS.md` under a warm cache cost a whole-prefix

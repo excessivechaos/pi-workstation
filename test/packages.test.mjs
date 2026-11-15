@@ -26,11 +26,23 @@ test("a missing package is installed, others are left alone", () => {
 	eq(plan.install, [PACKAGES.find((s) => s.includes("pi-quota-resume"))], "only the missing one");
 });
 
-test("retired packages are removed by name and by org", () => {
+test("only named retirements are removed", () => {
 	const plan = planPackages([...PACKAGES, REMOVED_PACKAGES[0], `${ORG}pi-retired-thing`]);
 	ok(plan.remove.includes(REMOVED_PACKAGES[0]), "the named retirement goes");
-	ok(plan.remove.includes(`${ORG}pi-retired-thing`), "an unlisted package under our org goes");
+	ok(!plan.remove.includes(`${ORG}pi-retired-thing`), "an unlisted package of ours is left alone");
 	eq(plan.install, [], "nothing missing");
+});
+
+test("a package listed in this version is never removed by a stale one", () => {
+	// The incident: an older module instance saw a newer settings file and dropped
+	// the packages its own list did not mention.
+	const newer = [`${ORG}pi-quota-peek`, `${ORG}pi-quota-resume`];
+	eq(planPackages(newer).remove, [], "unknown to this list, still not removed");
+	eq(planPackages(newer).install.length > 0, true, "and installed when the list does know them");
+	// Dropping a source from PACKAGES is not a retirement either.
+	const dropped = PACKAGES.filter((s) => !s.includes("pi-quota-resume"));
+	eq(planPackages(PACKAGES).remove, [], "a listed source stays listed");
+	eq(planPackages(dropped).remove, [], "removing it from the list does not uninstall it");
 });
 
 test("optional packages are never removed and never installed", () => {

@@ -143,9 +143,16 @@ pi install git:github.com/excessivechaos/pi-workstation
 
 That is the only manual step. The next start (and every start after) compares `settings.json`'s
 package list with `PACKAGES` in `lib/workstation.mjs` and converges it: missing packages are
-installed with pi's own package manager, `REMOVED_PACKAGES` are removed, and any `git:.../excessivechaos/*`
-source that is no longer listed is treated as retired and removed too. `OPTIONAL_PACKAGES` are
-never added and never removed. Foreign sources are never touched.
+installed with pi's own package manager, and `REMOVED_PACKAGES` are removed. Nothing else is: a
+source that this version of the list does not mention is left alone, including our own, because a
+module instance older than the list would otherwise delete everything newer than itself — silently,
+in a session that has been running since before those packages existed. Dropping a source from
+`PACKAGES` is not a retirement; add it to `REMOVED_PACKAGES` when it should go. `OPTIONAL_PACKAGES`
+are never added and never removed. Foreign sources are never touched.
+
+Every run appends a line to `$PI_CODING_AGENT_DIR/pi-workstation.log` — the plan, each install or
+removal, and any failure, with a timestamp, rotated at 200 kB. Package changes happen in the
+background where a notification can be lost with a stale context, so the log is the durable record.
 
 So the workflow for every machine is:
 

@@ -21,6 +21,7 @@
  * The install script (`bootstrap.mjs`) imports `lib/workstation.mjs` and applies the same code, so
  * a fresh machine and an updated one converge on the same result.
  */
+import { appendFileSync, renameSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,6 +40,26 @@ function apply(agentDirPath: string, dryRun: boolean) {
 	return applyConfigs({ agentDir: agentDirPath, configsDir: CONFIGS_DIR, dryRun });
 }
 
+/**
+ * Package membership has no user interface: it happens in the background, and a
+ * notification is lost if the context it resolved against has gone stale. Every
+ * run leaves a timestamped line here instead, so a disappearance can be
+ * attributed later rather than reconstructed. Bounded: one previous file.
+ */
+function appendPackageLog(agentDirPath: string, line: string) {
+	const path = join(agentDirPath, "pi-workstation.log");
+	try {
+		if (statSync(path).size > 200_000) renameSync(path, `${path}.1`);
+	} catch {
+		// Missing or unreadable: start a fresh file.
+	}
+	try {
+		appendFileSync(path, `${new Date().toISOString()} ${line}\n`);
+	} catch {
+		// Logging must never fail a sync.
+	}
+}
+
 /** One package sync at a time per process; two sessions starting together must not race. */
 let syncing: Promise<{ install: string[]; remove: string[]; failed: unknown[] }> | undefined;
 
@@ -48,8 +69,17 @@ let syncing: Promise<{ install: string[]; remove: string[]; failed: unknown[] }>
  * on the next start or `/reload`, exactly like a manual `pi install`.
  */
 function syncPackages(agentDirPath: string, cwd: string) {
-	syncing ??= applyPackages({ api: { DefaultPackageManager, SettingsManager }, agentDir: agentDirPath, cwd })
+	const log = (line: string) => appendPackageLog(agentDirPath, line);
+	syncing ??= applyPackages({ api: { DefaultPackageManager, SettingsManager }, agentDir: agentDirPath, cwd, log })
 		.then((result) => {
+			if (result.install.length > 0 || result.remove.length > 0) {
+				log(`plan applied: ${describePlan(result)}`);
+			} else {
+				log("converged: no package changes");
+			}
+			for (const failure of result.failed as { source: string; action: string; error: string }[]) {
+				log(`FAILED ${failure.action} ${failure.source}: ${failure.error}`);
+			}
 			// Re-apply after membership changes so a newly installed package's config
 			// file exists before its own session_start reads it.
 			apply(agentDirPath, false);
