@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `configs/compaction-percent.json`: `bustTokens: 150000`. Compaction-percent 2.4.0 compacts before a
+  prefix rewrite it can see coming — an expired cache or a changed system prompt — once the context is
+  past that line. Covers the case where an edited `AGENTS.md` under a warm cache cost a whole-prefix
+  write ($1.61 measured on a 240k session).
+
 - **Package membership converges at session start.** `lib/packages.mjs` drives pi's own
   `DefaultPackageManager`: a fresh machine needs only
   `pi install git:github.com/excessivechaos/pi-workstation`, and every later start installs what

@@ -5,6 +5,7 @@
   "hardWindowFraction": 0.9,
   "softGapTokens": 50000,
   "marginTokens": 50000,
+  "bustTokens": 150000,
   "compactionModels": [
     "commandcode/deepseek/deepseek-v4.1-flash"
   ],
