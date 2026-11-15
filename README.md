@@ -82,8 +82,10 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
    default-model lookup rejects a virtual provider) and, on Linux, starts pi under the OOM
    protection if `/usr/local/sbin/protect-pi` exists. The `pi` function passes subcommands
    (`install`, `remove`, `update`, `list`, `config`, `auth`, `mcp`, `--help`, `--version`) straight
-   through — without that, `pi update` would become a session whose first message is "update". The
-   block is replaced in place, never duplicated.
+   through — without that, `pi update` would become a session whose first message is "update". Both
+   the bash and the PowerShell block render the same `PI_SUBCOMMANDS` list. The block is replaced in
+   place, never duplicated, and the extension applies it on every start alongside the JSON configs,
+   so it travels with `pi update --extensions` like everything else here.
 
 The 1-hour tier is the base of the cache policy: a 5-minute entry expires across a long tool call or
 a walk-away, and the next request then re-bills the entire prefix as a write — at a 400k-token
@@ -118,9 +120,12 @@ that already ran the installer once:
 pi update --extensions      # pulls the code, and the configs with it
 ```
 
-The next start applies them. Nothing is written when nothing changed (start is silent and does no
-I/O beyond four reads), `/apply-config preview` shows what a start would do, `/apply-config` does it
-now, and `/apply-config path` prints where the files come from and go.
+The next start applies them. That includes the marked block in the shell profile, which is what makes
+the `pi` wrapper (subcommand passthrough, router default, `PI_CACHE_RETENTION`) travel too. Nothing
+is written when nothing changed — a converged start is silent and does no I/O beyond reading the
+files and appending one line to `pi-workstation.log`; `/apply-config preview` shows what a start
+would do, `/apply-config` does it now, and `/apply-config path` prints where the files come from and
+go.
 
 `settings.json` and `models.json` are still merged, never replaced, so a machine's theme, keys,
 locale and hand-added model overrides survive an update. The two wholly-owned files
