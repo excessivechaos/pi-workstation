@@ -10,6 +10,9 @@
   run in the background after the config pass (never blocking a turn, no network when converged)
   and announce themselves with "restart or /reload to activate"; `/apply-config preview` shows the
   package plan, `/apply-config` applies it.
+- `/apply-config` reloads the session itself after installing or removing packages, so the change is
+  live without a restart. Only a command context can reload (`ctx.reload()`); the `session_start`
+  sync still asks for `/reload` because an event handler has no reload in pi's API.
 
 - Two new packages, both quota-aware, both explicit-model-first:
   - **pi-quota-peek** is the single source of truth for subscription quota windows: it owns the

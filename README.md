@@ -157,9 +157,13 @@ pi update --extensions      # there: pulls the code (and configs)
 
 Installs are network work, so they run in the background after the config pass and never block a
 turn; a converged machine does no network at all, just one settings read. A package installed
-mid-session loads on the next start or `/reload` — same as a manual `pi install`. The notify line
-says which packages changed and that a restart activates them. `/apply-config preview` shows the
-package plan without touching anything, `/apply-config` applies it immediately.
+mid-session loads on the next start or `/reload` — same as a manual `pi install`.
+
+`/apply-config` is the fully automatic path: it installs, applies configs, and then **reloads the
+session itself** (`ctx.reload()`, the command-context form of `/reload`), so the new packages are
+live without a restart. Two limits are pi's, not ours: reload is only exposed to command handlers,
+so the background sync at `session_start` cannot reload itself and asks for `/reload` instead; and
+reload is refused while a response is streaming, where the command says when to run it.
 
 Two processes starting at the same moment could both try to install the same package; the loser's
 clone fails and is retried at the next start.
