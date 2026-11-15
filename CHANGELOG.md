@@ -19,7 +19,9 @@
   `PACKAGES` means "stop installing it", not "uninstall it".
 - **`pi-workstation.log`.** Every package pass appends the plan, each action and any failure to
   `$PI_CODING_AGENT_DIR/pi-workstation.log` (rotated at 200 kB). The sync runs in the background,
-  where a notification resolving against a stale context can vanish without a trace.
+  where a notification resolving against a stale context can vanish without a trace. Each line
+  carries `[pid <n> <session-id>]`, so a disappearance can be attributed to a process, not just
+  dated.
 
 - `configs/compaction-percent.json`: `bustTokens: 150000`. Compaction-percent 2.4.0 compacts before a
   prefix rewrite it can see coming — an expired cache or a changed system prompt — once the context is

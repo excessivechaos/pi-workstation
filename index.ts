@@ -56,7 +56,7 @@ function apply(agentDirPath: string, dryRun: boolean) {
  * run leaves a timestamped line here instead, so a disappearance can be
  * attributed later rather than reconstructed. Bounded: one previous file.
  */
-function appendPackageLog(agentDirPath: string, line: string) {
+function appendPackageLog(agentDirPath: string, line: string, tag: string) {
 	const path = join(agentDirPath, "pi-workstation.log");
 	try {
 		if (statSync(path).size > 200_000) renameSync(path, `${path}.1`);
@@ -64,7 +64,7 @@ function appendPackageLog(agentDirPath: string, line: string) {
 		// Missing or unreadable: start a fresh file.
 	}
 	try {
-		appendFileSync(path, `${new Date().toISOString()} ${line}\n`);
+		appendFileSync(path, `${new Date().toISOString()} ${tag} ${line}\n`);
 	} catch {
 		// Logging must never fail a sync.
 	}
@@ -78,8 +78,8 @@ let syncing: Promise<{ install: string[]; remove: string[]; failed: unknown[] }>
  * network work, so the caller runs this off the hot path; a fresh package loads
  * on the next start or `/reload`, exactly like a manual `pi install`.
  */
-function syncPackages(agentDirPath: string, cwd: string) {
-	const log = (line: string) => appendPackageLog(agentDirPath, line);
+function syncPackages(agentDirPath: string, cwd: string, tag: string) {
+	const log = (line: string) => appendPackageLog(agentDirPath, line, tag);
 	syncing ??= applyPackages({ api: { DefaultPackageManager, SettingsManager }, agentDir: agentDirPath, cwd, log })
 		.then((result) => {
 			if (result.install.length > 0 || result.remove.length > 0) {
@@ -128,7 +128,15 @@ export default function workstation(pi: ExtensionAPI): void {
 				// The session ended while the sync was still running; nothing to say.
 			}
 		};
-		void syncPackages(agentDir(), ctx.cwd)
+		// Which process did what: without this, a package that vanishes can be dated but not attributed.
+		const sessionId = (() => {
+			try {
+				return (ctx.sessionManager as unknown as { getSessionId?: () => string }).getSessionId?.() ?? "no-session";
+			} catch {
+				return "no-session";
+			}
+		})();
+		void syncPackages(agentDir(), ctx.cwd, `[pid ${process.pid} ${sessionId}]`)
 			.then((result) => {
 				if (result.failed.length > 0) {
 					const first = result.failed[0] as { source: string; action: string; error: string };
@@ -157,7 +165,7 @@ export default function workstation(pi: ExtensionAPI): void {
 					"info",
 				);
 			}
-			const plan = await syncPackages(agentDir(), ctx.cwd);
+			const plan = await syncPackages(agentDir(), ctx.cwd, `[apply-config pid ${process.pid}]`);
 			const results = apply(agentDir(), false);
 			const membershipChanged = plan.install.length + plan.remove.length > 0;
 			const parts = [
