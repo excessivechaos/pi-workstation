@@ -6,6 +6,9 @@
   prefix rewrite it can see coming — an expired cache or a changed system prompt — once the context is
   past that line. Covers the case where an edited `AGENTS.md` under a warm cache cost a whole-prefix
   write ($1.61 measured on a 240k session).
+  A user model switch is the third bust reason (2.5.0): the newly selected model has never seen the
+  prefix, so above `bustTokens` it compacts at the next run. Any selected model counts, including
+  `router/*`; the router's own per-request choices never emit `model_select` and are ignored.
 
 - **Package membership converges at session start.** `lib/packages.mjs` drives pi's own
   `DefaultPackageManager`: a fresh machine needs only
