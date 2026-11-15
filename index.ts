@@ -119,13 +119,22 @@ export default function workstation(pi: ExtensionAPI): void {
 			}
 			const plan = await syncPackages(agentDir(), ctx.cwd);
 			const results = apply(agentDir(), false);
+			const membershipChanged = plan.install.length + plan.remove.length > 0;
 			const parts = [
 				isConverged(results) ? "" : describeResults(results),
 				describePlan(plan),
 				plan.failed.length > 0 ? `${plan.failed.length} package action(s) failed` : "",
-				plan.install.length + plan.remove.length > 0 ? "restart or /reload to activate" : "",
 			].filter(Boolean);
-			return ctx.ui.notify(`pi-workstation: ${parts.length === 0 ? "converged — nothing to apply" : parts.join(" · ")}`, "info");
+			ctx.ui.notify(`pi-workstation: ${parts.length === 0 ? "converged — nothing to apply" : parts.join(" · ")}`, "info");
+			// Reload loads the newly installed extensions in this process; only a
+			// command context can do it, and only while the session is idle.
+			if (!membershipChanged) return;
+			if (!ctx.isIdle()) {
+				ctx.ui.notify("pi-workstation: run /reload when idle to activate the new packages", "info");
+				return;
+			}
+			// After reload this ctx is stale: touch nothing past this point.
+			return ctx.reload();
 		} catch (error) {
 			return ctx.ui.notify(`pi-workstation: ${(error as Error).message}`, "error");
 		}
