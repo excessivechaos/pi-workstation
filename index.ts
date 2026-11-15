@@ -2,8 +2,10 @@
  * pi-workstation — the config half of the install script, as an extension.
  *
  * `pi update --extensions` already reconciles package code. This package makes it reconcile the
- * machine's config too: on every session start it converges `$PI_CODING_AGENT_DIR` on the files in
- * this repo's `configs/`, so a change lands with the same command that lands the code.
+ * machine's *membership and config* too: on every session start it converges `$PI_CODING_AGENT_DIR`
+ * on the packages in `lib/workstation.mjs` and the files in this repo's `configs/`, so a new pi
+ * install needs one command — `pi install git:github.com/excessivechaos/pi-workstation` — and every
+ * later change lands with `pi update --extensions` plus the next start.
  *
  *   settings.json            merged (never replaced): packages order, compaction off, cache warming
  *                            off, thinking levels. Keys are never deleted.
@@ -24,6 +26,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { applyConfigs, configsDirFrom, describeResults, isConverged } from "./lib/workstation.mjs";
+import { applyPackages, describePlan } from "./lib/packages.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CONFIGS_DIR = configsDirFrom(HERE);
@@ -34,6 +37,28 @@ function agentDir(): string {
 
 function apply(agentDirPath: string, dryRun: boolean) {
 	return applyConfigs({ agentDir: agentDirPath, configsDir: CONFIGS_DIR, dryRun });
+}
+
+/** One package sync at a time per process; two sessions starting together must not race. */
+let syncing: Promise<{ install: string[]; remove: string[]; failed: unknown[] }> | undefined;
+
+/**
+ * Converge package membership, then the configs that configure it. Installs are
+ * network work, so the caller runs this off the hot path; a fresh package loads
+ * on the next start or `/reload`, exactly like a manual `pi install`.
+ */
+function syncPackages(agentDirPath: string, cwd: string) {
+	syncing ??= applyPackages({ agentDir: agentDirPath, cwd })
+		.then((result) => {
+			// Re-apply after membership changes so a newly installed package's config
+			// file exists before its own session_start reads it.
+			apply(agentDirPath, false);
+			return result;
+		})
+		.finally(() => {
+			syncing = undefined;
+		});
+	return syncing;
 }
 
 export default function workstation(pi: ExtensionAPI): void {
@@ -52,6 +77,23 @@ export default function workstation(pi: ExtensionAPI): void {
 		} catch (error) {
 			ctx.ui.notify(`pi-workstation: could not apply configs: ${(error as Error).message}`, "error");
 		}
+		// Package membership is network work and never blocks the turn. A converged
+		// machine resolves from settings with no network at all.
+		void syncPackages(agentDir(), ctx.cwd)
+			.then((result) => {
+				if (result.failed.length > 0) {
+					const first = result.failed[0] as { source: string; action: string; error: string };
+					ctx.ui.notify(`pi-workstation: ${first.action} of ${first.source} failed: ${first.error}`, "error");
+				}
+				if (result.install.length === 0 && result.remove.length === 0) return;
+				ctx.ui.notify(
+					`pi-workstation: ${describePlan(result)} — restart or /reload to activate`,
+					"info",
+				);
+			})
+			.catch((error: unknown) => {
+				ctx.ui.notify(`pi-workstation: could not sync packages: ${(error as Error).message}`, "error");
+			});
 	});
 
 	const command = async (args: string, ctx: ExtensionContext) => {
@@ -62,13 +104,22 @@ export default function workstation(pi: ExtensionAPI): void {
 		try {
 			if (verb === "preview" || verb === "dry-run" || verb === "status") {
 				const results = apply(agentDir(), true);
-				return ctx.ui.notify(`pi-workstation: ${isConverged(results) ? "converged — nothing to apply" : describeResults(results)}`, "info");
+				const plan = await applyPackages({ agentDir: agentDir(), cwd: ctx.cwd, dryRun: true });
+				const changes = describeResults(results);
+				return ctx.ui.notify(
+					`pi-workstation: ${isConverged(results) && plan.install.length + plan.remove.length === 0 ? "converged — nothing to apply" : [changes, describePlan(plan)].filter(Boolean).join(" · ")}`,
+					"info",
+				);
 			}
+			const plan = await syncPackages(agentDir(), ctx.cwd);
 			const results = apply(agentDir(), false);
-			return ctx.ui.notify(
-				`pi-workstation: ${isConverged(results) ? "converged — nothing to apply" : describeResults(results)}`,
-				"info",
-			);
+			const parts = [
+				isConverged(results) ? "" : describeResults(results),
+				describePlan(plan),
+				plan.failed.length > 0 ? `${plan.failed.length} package action(s) failed` : "",
+				plan.install.length + plan.remove.length > 0 ? "restart or /reload to activate" : "",
+			].filter(Boolean);
+			return ctx.ui.notify(`pi-workstation: ${parts.length === 0 ? "converged — nothing to apply" : parts.join(" · ")}`, "info");
 		} catch (error) {
 			return ctx.ui.notify(`pi-workstation: ${(error as Error).message}`, "error");
 		}
