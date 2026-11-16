@@ -203,7 +203,12 @@ configs/
   subscription-router.json
   compaction-percent.json  250k soft / 300k hard token lines, 90% of the window as the ceiling; summarisers listed here
   cache-keepalive.json     warm at 85% of the TTL, warmCount 9 (about 7.6 h), 8 h cap
+  quota-resume.json        re-send `continue` when a quota window resets
 ```
+
+`settings.patch.json` is merged, never written wholesale, so locale, theme, keybindings and anything
+else you set by hand survive. It carries `defaultTools: ["+codemode"]` — the default set plus
+codemode — so every machine has the same toolset.
 
 ## Options
 

@@ -12,5 +12,8 @@
     "openai-codex/gpt-6.1-terra": "xhigh",
     "openai-codex/gpt-6-luna": "max",
     "commandcode/deepseek/deepseek-v4.1-flash": "max"
-  }
+  },
+  "defaultTools": [
+    "+codemode"
+  ]
 }

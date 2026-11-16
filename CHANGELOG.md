@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0
 
 - **PowerShell passes subcommands through.** The bash block sent `install|remove|uninstall|update|
   list|config|auth|mcp|--help|--version` straight to pi; the PowerShell block did not, so
@@ -11,6 +11,9 @@
   the extension writes the marked block at every start (bash/zsh: `~/.bashrc`/`~/.zshrc`; Windows:
   `$PROFILE.CurrentUserAllHosts`, resolved through PowerShell), and the installer runs the same
   function. Only a changed block is written, so a converged machine touches nothing.
+- **`codemode` is on.** `defaultTools: ["+codemode"]` in `settings.patch.json` keeps `read`, `bash`,
+  `edit` and `write` and adds the script sandbox, so one call can batch tool calls and run classifier
+  and image models without the intermediate results entering the context.
 
 - **Removals are explicit only.** `planPackages` no longer treats "ours, but not in my list" as a
   retirement: an in-process list older than the settings file would delete the packages newer than
@@ -55,8 +58,6 @@
     give-up guard counts whole resumes, not pi's four retries inside one.
   - **pi-quota-statusline 1.3.0** reads its quota segments from peek instead of fetching the usage
     endpoints itself.
-
-## Unreleased
 
 - `configs/compaction-percent.json`: summaries come from `deepseek-v4.1-flash` alone. The two
   CommandCode free models ahead of it in the list no longer resolve in the model registry, so every
