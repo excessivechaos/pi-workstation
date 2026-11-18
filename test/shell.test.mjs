@@ -34,7 +34,7 @@ test("both shells send the same subcommands straight to pi", () => {
 test("the shell policy is the same in both blocks", () => {
 	for (const block of [shellBlockBash(), shellBlockPowerShell()]) {
 		ok(block.includes("PI_CACHE_RETENTION"), "one-hour retention");
-		ok(block.includes("router/orchestrator"), "router default");
+		ok(block.includes("commandcode/deepseek/deepseek-v4.1-flash"), "the default model");
 		ok(block.includes("pi-workstation bootstrap"), "marked block");
 	}
 	ok(shellBlockBash({ linux: true }).includes("protect-pi"), "the OOM guard is Linux-only");
@@ -49,8 +49,8 @@ test("the block is replaced in place and everything around it survives", () => {
 	ok(once.includes(block), "the block is appended once");
 	eq(upsertMarkedBlock(once, block), undefined, "a second pass is a no-op");
 
-	const changed = upsertMarkedBlock(once, block.replace("router/orchestrator", "router/auto"));
-	ok(changed.includes("router/auto"), "an outdated block is rewritten");
+	const changed = upsertMarkedBlock(once, block.replace("deepseek-v4.1-flash", "deepseek-v4-flash"));
+	ok(changed.includes("deepseek-v4-flash") && !changed.includes("deepseek-v4.1-flash"), "an outdated block is rewritten");
 	eq(changed.split(">>> pi-workstation bootstrap >>>").length, 2, "still exactly one block");
 	ok(changed.endsWith(changed.trimEnd() + "\n") || true, "well-formed");
 	eq(changed.startsWith(before), true, "the surrounding lines are untouched");
@@ -61,7 +61,7 @@ test("apply writes the profile once, then reports converged", () => {
 	const first = applyShellProfile({ home: dir, platform: "linux", env: { SHELL: "/bin/bash" } })[0];
 	eq(first.action, "created", "a missing profile is created");
 	eq(first.path, join(dir, ".bashrc"), "bash profile");
-	ok(readFileSync(first.path, "utf8").includes("router/orchestrator"), "the block is in it");
+	ok(readFileSync(first.path, "utf8").includes("commandcode/deepseek/deepseek-v4.1-flash"), "the block is in it");
 	eq(applyShellProfile({ home: dir, platform: "linux", env: { SHELL: "/bin/bash" } })[0].action, "unchanged", "second pass is a no-op");
 
 	// zsh gets .zshrc, and an existing file keeps its other lines.

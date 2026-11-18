@@ -78,9 +78,10 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
    `set-environment -g`, plus `tmux set-environment -g` against a server that is already running,
    so attached and detached sessions both see it. Skipped when tmux is absent.
 5. **shell profile** — a marked block in `~/.bashrc` / `~/.zshrc` / `$PROFILE` that exports
-   `PI_CACHE_RETENTION=long`, defaults new sessions to `--model router/orchestrator` (pi's
-   default-model lookup rejects a virtual provider) and, on Linux, starts pi under the OOM
-   protection if `/usr/local/sbin/protect-pi` exists. The `pi` function passes subcommands
+   `PI_CACHE_RETENTION=long`, defaults new sessions to `--model
+   commandcode/deepseek/deepseek-v4.1-flash` (the same model `DEFAULT_MODEL` names, and the same one
+   `settings.patch.json` saves as the default) and, on Linux, starts pi under the OOM protection if
+   `/usr/local/sbin/protect-pi` exists. The `pi` function passes subcommands
    (`install`, `remove`, `update`, `list`, `config`, `auth`, `mcp`, `--help`, `--version`) straight
    through — without that, `pi update` would become a session whose first message is "update". Both
    the bash and the PowerShell block render the same `PI_SUBCOMMANDS` list. The block is replaced in
@@ -129,7 +130,7 @@ pi update --extensions      # pulls the code, and the configs with it
 ```
 
 The next start applies them. That includes the marked block in the shell profile, which is what makes
-the `pi` wrapper (subcommand passthrough, router default, `PI_CACHE_RETENTION`) travel too. Nothing
+the `pi` wrapper (subcommand passthrough, default model, `PI_CACHE_RETENTION`) travel too. Nothing
 is written when nothing changed — a converged start is silent and does no I/O beyond reading the
 files and appending one line to `pi-workstation.log`; `/apply-config preview` shows what a start
 would do, `/apply-config` does it now, and `/apply-config path` prints where the files come from and

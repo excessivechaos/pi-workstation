@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.0
+
+- **The default model is `commandcode/deepseek/deepseek-v4.1-flash`**, in one place: `DEFAULT_MODEL`
+  in `lib/workstation.mjs`, used by both shell blocks, and `defaultProvider`/`defaultModel` in
+  `settings.patch.json`. It also leads `enabledModels`, because pi's resolver takes `scopedModels[0]`
+  before the saved default (`core/model-resolver.js:395`) — otherwise a session started without the
+  wrapper would land on whichever model happened to be listed first. `router/orchestrator` stays
+  scoped, so `pi -m router/orchestrator` is unchanged.
+
+
 ## 1.5.0
 
 - **The scoped set and this station's defaults are in the config now.** `settings.patch.json` gained

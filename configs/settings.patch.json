@@ -1,11 +1,11 @@
 {
-  "defaultProvider": "router",
-  "defaultModel": "router/orchestrator",
+  "defaultProvider": "commandcode",
+  "defaultModel": "deepseek/deepseek-v4.1-flash",
   "enabledModels": [
+    "commandcode/deepseek/deepseek-v4.1-flash",
     "anthropic/claude-haiku-5-5",
     "anthropic/claude-opus-5-5",
     "anthropic/claude-sonnet-5-5",
-    "commandcode/deepseek/deepseek-v4.1-flash",
     "commandcode/zai-org/GLM-5.3",
     "openai-codex/gpt-6-luna",
     "openai-codex/gpt-6.1-terra",
