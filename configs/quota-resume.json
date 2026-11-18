@@ -1,8 +1,9 @@
 {
-	"enabled": true,
-	"text": "continue",
-	"marginMinutes": 1,
-	"pollMinutes": 15,
-	"pollCapMinutes": 60,
-	"maxFailedResumes": 5
+  "enabled": true,
+  "text": "continue",
+  "marginMinutes": 1,
+  "pollMinutes": 15,
+  "pollCapMinutes": 60,
+  "maxFailedResumes": 5,
+  "nearExhaustedPercent": 90
 }
