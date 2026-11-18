@@ -1,18 +1,34 @@
 {
+  "defaultProvider": "router",
   "defaultModel": "router/orchestrator",
+  "enabledModels": [
+    "anthropic/claude-haiku-5-5",
+    "anthropic/claude-opus-5-5",
+    "anthropic/claude-sonnet-5-5",
+    "commandcode/deepseek/deepseek-v4.1-flash",
+    "commandcode/zai-org/GLM-5.3",
+    "openai-codex/gpt-6-luna",
+    "openai-codex/gpt-6.1-terra",
+    "openai-codex/gpt-6.2-sol",
+    "router/orchestrator",
+    "router/planner",
+    "router/worker"
+  ],
+  "modelThinkingLevels": {
+    "anthropic/claude-haiku-5-5": "xhigh",
+    "anthropic/claude-opus-5-5": "medium",
+    "anthropic/claude-sonnet-5-5": "high",
+    "commandcode/deepseek/deepseek-v4.1-flash": "max",
+    "commandcode/zai-org/GLM-5.3": "max",
+    "openai-codex/gpt-6-luna": "max",
+    "openai-codex/gpt-6.1-sol": "xhigh",
+    "openai-codex/gpt-6.1-terra": "xhigh",
+    "openai-codex/gpt-6.2-sol": "xhigh"
+  },
   "compaction": {
     "enabled": false
   },
   "cacheWarming": "off",
-  "modelThinkingLevels": {
-    "anthropic/claude-opus-5-5": "medium",
-    "anthropic/claude-sonnet-5-5": "high",
-    "anthropic/claude-haiku-5-5": "xhigh",
-    "openai-codex/gpt-6.1-sol": "xhigh",
-    "openai-codex/gpt-6.1-terra": "xhigh",
-    "openai-codex/gpt-6-luna": "max",
-    "commandcode/deepseek/deepseek-v4.1-flash": "max"
-  },
   "defaultTools": [
     "+codemode"
   ]

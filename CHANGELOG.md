@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.0
+
+- **The scoped set and this station's defaults are in the config now.** `settings.patch.json` gained
+  `defaultProvider` and the 11 `enabledModels` (three anthropic, three codex, two commandcode, three
+  router), and `modelThinkingLevels` grew to the 9 the machine actually sets — `gpt-6.2-sol` at
+  `xhigh`, `zai-org/GLM-5.3` at `max`. Sorted, so a diff reads as a model list.
+- **`gpt-6.2-sol` gets a `models.patch.json` entry** like its siblings: `contextWindow` 500000 and
+  `promptCache` 300/1800. The refreshed catalog already reports the window; the part that mattered
+  is the TTL the compaction policy reads — 30 minutes, not the 1-hour default it would otherwise
+  assume for this model alone.
+
+
 ## 1.4.0
 
 - **Every PowerShell profile is written on Windows.** `shellProfilePath` asked `powershell` for
