@@ -7,6 +7,7 @@ import {
 	PI_SUBCOMMANDS,
 	applyShellProfile,
 	shellBlockBash,
+	shellProfilePaths,
 	shellBlockPowerShell,
 	upsertMarkedBlock,
 } from "../lib/workstation.mjs";
@@ -57,31 +58,66 @@ test("the block is replaced in place and everything around it survives", () => {
 
 test("apply writes the profile once, then reports converged", () => {
 	const dir = home();
-	const first = applyShellProfile({ home: dir, platform: "linux", env: { SHELL: "/bin/bash" } });
+	const first = applyShellProfile({ home: dir, platform: "linux", env: { SHELL: "/bin/bash" } })[0];
 	eq(first.action, "created", "a missing profile is created");
 	eq(first.path, join(dir, ".bashrc"), "bash profile");
 	ok(readFileSync(first.path, "utf8").includes("router/orchestrator"), "the block is in it");
-	eq(applyShellProfile({ home: dir, platform: "linux", env: { SHELL: "/bin/bash" } }).action, "unchanged", "second pass is a no-op");
+	eq(applyShellProfile({ home: dir, platform: "linux", env: { SHELL: "/bin/bash" } })[0].action, "unchanged", "second pass is a no-op");
 
 	// zsh gets .zshrc, and an existing file keeps its other lines.
 	const zdir = home();
 	writeFileSync(join(zdir, ".zshrc"), "export EDITOR=vim\n");
-	const z = applyShellProfile({ home: zdir, platform: "darwin", env: { SHELL: "/bin/zsh" } });
+	const z = applyShellProfile({ home: zdir, platform: "darwin", env: { SHELL: "/bin/zsh" } })[0];
 	eq(z.path, join(zdir, ".zshrc"), "zsh profile");
 	ok(readFileSync(z.path, "utf8").startsWith("export EDITOR=vim\n"), "existing lines survive");
 
 	// dry run reports the action without writing.
 	const ddir = home();
-	const dry = applyShellProfile({ home: ddir, platform: "linux", env: { SHELL: "/bin/bash" }, dryRun: true });
+	const dry = applyShellProfile({ home: ddir, platform: "linux", env: { SHELL: "/bin/bash" }, dryRun: true })[0];
 	eq(dry.action, "would-create", "dry run does not create");
 	assert.throws(() => readFileSync(dry.path, "utf8"), "and leaves no file");
 	checks++;
 });
 
 test("a Windows profile that cannot be resolved is skipped, not guessed", () => {
-	// No powershell here: the caller gets undefined rather than a path in the wrong place.
-	const result = applyShellProfile({ platform: "win32", home: home(), env: {} });
+	// No PowerShell to ask: the caller gets undefined rather than a path in the wrong place.
+	const result = applyShellProfile({ platform: "win32", home: home(), env: {}, resolveProfile: () => undefined });
 	eq(result, undefined, "unresolvable profile is undefined");
+	eq(shellProfilePaths({ platform: "win32", home: home(), env: {}, resolveProfile: () => undefined }), [], "no paths either");
+});
+
+test("every PowerShell profile is written, not just the one `powershell` reports", () => {
+	// Windows keeps pwsh 7 and 5.1 profiles in different directories; writing one leaves
+	// the other shell without PI_CACHE_RETENTION, which is the warning this prevents.
+	const dir = home();
+	const profiles = {
+		pwsh: join(dir, "Documents", "PowerShell", "profile.ps1"),
+		powershell: join(dir, "Documents", "WindowsPowerShell", "profile.ps1"),
+	};
+	const resolveProfile = (shell) => profiles[shell];
+	eq(shellProfilePaths({ platform: "win32", home: dir, env: {}, resolveProfile }), [profiles.pwsh, profiles.powershell], "both, pwsh first");
+
+	const results = applyShellProfile({ platform: "win32", home: dir, env: {}, resolveProfile });
+	eq(results.map((r) => r.action), ["created", "created"], "both are created");
+	for (const path of Object.values(profiles)) {
+		ok(readFileSync(path, "utf8").includes("PI_CACHE_RETENTION"), `${path} sets the variable`);
+	}
+	eq(applyShellProfile({ platform: "win32", home: dir, env: {}, resolveProfile }).map((r) => r.action), ["unchanged", "unchanged"], "both converge");
+
+	// Only 5.1 installed: one file, no invented path for the shell that is not there.
+	const onlyOld = applyShellProfile({ platform: "win32", home: home(), env: {}, resolveProfile: (shell) => (shell === "powershell" ? profiles.powershell : undefined) });
+	eq(onlyOld.length, 1, "one profile");
+	eq(onlyOld[0].path, profiles.powershell, "the 5.1 one");
+
+	// The same path from both shells is written once.
+	const same = join(dir, "Documents", "WindowsPowerShell", "profile.ps1");
+	eq(shellProfilePaths({ platform: "win32", home: dir, env: {}, resolveProfile: () => same }), [same], "deduped");
+
+	// A Git Bash on Windows exports SHELL: its rc is written too, and the PS block is not.
+	const msys = shellProfilePaths({ platform: "win32", home: dir, env: { SHELL: "/usr/bin/bash" }, resolveProfile: () => undefined });
+	eq(msys, [join(dir, ".bashrc")], "an MSYS shell gets its rc");
+	const msysRun = applyShellProfile({ platform: "win32", home: dir, env: { SHELL: "/usr/bin/bash" }, resolveProfile: () => undefined });
+	ok(readFileSync(msysRun[0].path, "utf8").includes("export PI_CACHE_RETENTION=long"), "with the bash block, not the PowerShell one");
 });
 
 test("checks", () => {

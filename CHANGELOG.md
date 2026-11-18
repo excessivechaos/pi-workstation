@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0
+
+- **Every PowerShell profile is written on Windows.** `shellProfilePath` asked `powershell` for
+  `$PROFILE.CurrentUserAllHosts`, which is the 5.1 profile; a machine launching pi from `pwsh` 7 kept
+  the block in `Documents\PowerShell\profile.ps1` unset and warned `PI_CACHE_RETENTION is not long`
+  at every start. Both shells are now resolved and both profiles get the block (deduped, one line
+  each in the report), and a Windows box running pi from Git Bash or MSYS2 (`SHELL` is exported) gets
+  its rc with the bash block. `applyShellProfile` answers with one result per profile; the installer
+  prints a line per file.
+
+
 ## 1.3.0
 
 - **PowerShell passes subcommands through.** The bash block sent `install|remove|uninstall|update|

@@ -87,6 +87,14 @@ be executed directly) or PowerShell for a `.ps1` shim. If detection still fails,
    place, never duplicated, and the extension applies it on every start alongside the JSON configs,
    so it travels with `pi update --extensions` like everything else here.
 
+   **Windows has two PowerShells with separate profiles** — `pwsh` 7 reads
+   `Documents\PowerShell\profile.ps1`, Windows PowerShell 5.1 reads
+   `Documents\WindowsPowerShell\profile.ps1` — so every profile that resolves is written, not just
+   whichever binary `powershell` happens to name. A machine with only one of them touches one file,
+   and a shell started from Git Bash or MSYS2 (it exports `SHELL`) gets its rc instead. Missing that
+   file's block is what surfaces as `PI_CACHE_RETENTION is not long`, because the variable is set by
+   the profile, not by the agent.
+
 The 1-hour tier is the base of the cache policy: a 5-minute entry expires across a long tool call or
 a walk-away, and the next request then re-bills the entire prefix as a write — at a 400k-token
 context, one such bust costs more than the 1-hour write premium for a whole session.

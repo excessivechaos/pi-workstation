@@ -212,11 +212,15 @@ function installShell() {
 	if (SKIP_SHELL) return log("skipped (--skip-shell)");
 	// The same code the extension runs at every start, so a machine never keeps an older
 	// wrapper than its JSON configs.
-	const result = applyShellProfile({ dryRun: DRY });
-	if (!result) return log("no shell profile on this platform; skipped");
-	if (DRY) return log(`would ${result.action.replace("would-", "")} ${result.path}`);
-	if (result.action === "failed") return log(`could not write ${result.path}: ${result.error}`);
-	log(result.action === "unchanged" ? `${result.path} already current` : `wrote ${result.path}`);
+	const results = applyShellProfile({ dryRun: DRY });
+	if (!results || results.length === 0) return log("no shell profile on this platform; skipped");
+	// One machine can have two profiles (pwsh 7 and Windows PowerShell keep separate ones),
+	// so each is reported; a single-shell machine prints a single line.
+	for (const result of results) {
+		if (DRY) log(`would ${result.action.replace("would-", "")} ${result.path}`);
+		else if (result.action === "failed") log(`could not write ${result.path}: ${result.error}`);
+		else log(result.action === "unchanged" ? `${result.path} already current` : `wrote ${result.path}`);
+	}
 }
 
 // ---------------------------------------------------------------- main

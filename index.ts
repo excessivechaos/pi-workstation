@@ -42,8 +42,8 @@ function apply(agentDirPath: string, dryRun: boolean) {
 	// `pi update` becomes a session whose first message is "update". A failure here must not
 	// cost the session — the profile is convenience, the JSON configs are not.
 	try {
-		const profile = applyShellProfile({ dryRun });
-		if (profile) results.push(profile);
+		const profiles = applyShellProfile({ dryRun });
+		if (profiles) results.push(...profiles);
 	} catch (error) {
 		results.push({ path: "shell profile", action: "failed", error: error instanceof Error ? error.message : String(error) } as never);
 	}
