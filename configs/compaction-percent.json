@@ -9,5 +9,6 @@
   "compactionModels": [
     "commandcode/deepseek/deepseek-v4.1-flash"
   ],
+  "compactionThinking": "max",
   "dryRun": false
 }
