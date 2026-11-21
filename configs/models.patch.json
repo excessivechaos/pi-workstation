@@ -6,63 +6,63 @@
           "contextWindow": 550000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-5.6-sol": {
           "contextWindow": 550000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-5.6-terra": {
           "contextWindow": 550000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-6-astra": {
           "contextWindow": 500000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-6-luna": {
           "contextWindow": 500000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-6-sol": {
           "contextWindow": 500000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-6.1-sol": {
           "contextWindow": 500000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-6.1-terra": {
           "contextWindow": 500000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         },
         "gpt-6.2-sol": {
           "contextWindow": 500000,
           "promptCache": {
             "short": 300,
-            "long": 1800
+            "long": 600
           }
         }
       }
