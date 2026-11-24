@@ -8,8 +8,8 @@
     "anthropic/claude-sonnet-5-5",
     "commandcode/zai-org/GLM-5.3",
     "openai-codex/gpt-6-luna",
+    "openai-codex/gpt-6.1-sol",
     "openai-codex/gpt-6.1-terra",
-    "openai-codex/gpt-6.2-sol",
     "router/orchestrator",
     "router/planner",
     "router/worker"
@@ -22,8 +22,7 @@
     "commandcode/zai-org/GLM-5.3": "max",
     "openai-codex/gpt-6-luna": "max",
     "openai-codex/gpt-6.1-sol": "xhigh",
-    "openai-codex/gpt-6.1-terra": "xhigh",
-    "openai-codex/gpt-6.2-sol": "xhigh"
+    "openai-codex/gpt-6.1-terra": "xhigh"
   },
   "compaction": {
     "enabled": false
